@@ -1,0 +1,9 @@
+{% extends 'index.html' %}
+
+
+{% block app_content %}    
+    <h4><strong>Внимание!</strong></h4>
+    <p>Отсутствует связь с базой данных 1С:{{basename}}.</p>
+    <br>    
+    <a href="{{url_for('main.index')}}"><strong>На главную</strong></a>
+{% endblock %}

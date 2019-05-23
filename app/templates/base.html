@@ -1,0 +1,57 @@
+{% extends 'bootstrap/base.html' %}
+
+
+{% block title %}
+    Интеграция
+{% endblock %}
+
+{% block styles %}
+    {{ super() }}        
+    <link href="https://rawgit.com/Eonasdan/bootstrap-datetimepicker/master/build/css/bootstrap-datetimepicker.min.css" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/checkbox.css') }}" rel="stylesheet" type="text/css" />    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/css/dataTables.bootstrap.min.css" rel="stylesheet"/>    
+{% endblock %}
+   
+{% block navbar %}    
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container-fluid">            
+            <div class="navbar-header">
+                <a class="navbar-brand" href="{{ url_for('main.index') }}"><strong>Интеграция с АИС РНГ</strong></a>                
+            </div>            
+            {% if current_user.is_authenticated %}
+                <ul class="nav navbar-nav">                
+                    <form class="form">
+                        <div class="form-group">
+                            <div class="material-switch pull-right">
+                                <input id="switch_option_mode" type="checkbox" {% if current_user.operating_mode == 'work' %}checked{% endif %}/>
+                                <label for="switch_option_mode" class="label-danger"></label>
+                            </div>
+                        </div>
+                    </form>                
+                </ul>
+                <ul class="nav navbar-nav navbar-right">                    
+                    <li><a href="#"><span class="glyphicon glyphicon-user"></span> {{ current_user.id }}</a></li>
+                    <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out"></span> Выйти</a></li>
+                </ul>
+            {% endif %}
+        </div>
+    </nav>        
+{% endblock %}
+
+{% block content %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info" role="alert">{{ message }}</div>
+            {% endfor %}        
+        {% endif %}
+    {% endwith %}
+    {% block index_content %}
+    {% endblock %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}    
+    {% block index_scripts %}
+    {% endblock %}
+{% endblock %}

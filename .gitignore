@@ -1,0 +1,11 @@
+# my ignore list
+__pycache__
+.venv
+.vscode
+migrations
+
+all_models.py
+net.py
+config.py
+
+Pipfile.lock

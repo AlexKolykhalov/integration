@@ -1,0 +1,9 @@
+{% extends 'index.html' %}
+
+
+{% block app_content %}    
+    <h4><strong>Внимание!</strong></h4>
+    <p>Страница не найдена.</p>
+    <br>    
+    <a href="{{url_for('main.index')}}"><strong>На главную</strong></a>
+{% endblock %}

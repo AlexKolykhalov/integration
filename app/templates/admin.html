@@ -1,0 +1,116 @@
+{% extends 'index.html' %}
+
+
+{% block app_content %}    
+    <div class="form-group">        
+        <h4><strong>{{ basename }}</strong></h4>            
+        <ul class="nav nav-tabs">
+            <li class="active"><a data-toggle="tab" href="#1">Настройки пользователей</a></li>
+            {% if bad_num_ls or empty_grs %}
+                <li><a data-toggle="tab" href="#2">Ошибки <img src={{ url_for('static', filename='high-importance.png') }} alt="" height="20" width="20"></a></li>
+            {% endif %}
+        </ul>
+        <div class="tab-content">
+            <div id="1" class="tab-pane fade in active">
+                <h4>Внимание!</h4>
+                <p>Изменение режима происходит непосредственно в базе 1С.</p>
+                <div class="form-group row">
+                    <div class="col-xs-12">
+                        <table id="table_hover" class="table table-hover">                        
+                            <tbody>
+                                {% for user in users %}
+                                    <tr>
+                                        {% if (user['res'] == '\x00' or user['res']|string == "b'\\x00'") %}
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ user['username'] }}</td>
+                                            <td>{{ user['sett'] }}</td>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input position-static" type="checkbox" aria-label="...">
+                                                </div>
+                                            </td>
+                                        {% else %}
+                                            <td><strong>{{ loop.index }}</strong></td>
+                                            <td><strong>{{ user['username'] }}</strong></td>
+                                            <td><strong>{{ user['sett'] }}</strong></td>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input position-static" type="checkbox" aria-label="..." checked>
+                                                </div>
+                                            </td>
+                                        {% endif %}                                    
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="2" class="tab-pane fade">                
+                {% if bad_num_ls %}
+                    <h4>Абоненты с неправильным ЛС</h4>
+                    <div class="form-group row">
+                        <div class="col-xs-5">
+                            <table class="table table-hover">                        
+                                <tbody>
+                                    {% for user in bad_num_ls %}
+                                        <tr>
+                                            <td>{{ user['ЛС'] }}</td>
+                                            <td>{{ user['ФИО'] }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}                
+                {% if empty_grs %}
+                    <h4>Здания без ГРС</h4>
+                    <div class="form-group row">
+                        <div class="col-xs-8">
+                            <table class="table table-hover">
+                                <tbody>
+                                    {% for user in empty_grs %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ user['АдресЗдания'] }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}                
+            </div>            
+        </div>        
+    </div>    
+{% endblock %} 
+
+{% block app_scripts %}    
+    <script>                
+        $('#table_hover input:checkbox').click(function(){            
+            var
+                _checked = false,
+                _tr      = $(this).parents('tr'),
+                _str     = location.pathname,
+                _db      = _str.substring(_str.length-3, _str.length),
+                _fio     = _tr.find('td:eq(1)').text(),
+                _set     = _tr.find('td:eq(2)').text();
+            if ($(this).is(':checked')) {
+                _checked = true;
+            }
+            //меняем значение в базе 1С 
+            $.post('{{ url_for("main.change") }}', {db: _db, name: _fio, set: _set, value: _checked})
+                .done( function(response) {
+                    if (response != 'yes') {
+                        show_alert('alert-danger', 'Ошибка связи с базой 1С: '+response);                        
+                    } else {
+                        _tr.find('td:eq(0)').html( _checked ? '<strong>' + _tr.find('td:eq(0)').text() + '</strong>' : _tr.find('td:eq(0)').text() );
+                        _tr.find('td:eq(1)').html( _checked ? '<strong>' + _tr.find('td:eq(1)').text() + '</strong>' : _tr.find('td:eq(1)').text() );
+                        _tr.find('td:eq(2)').html( _checked ? '<strong>' + _tr.find('td:eq(2)').text() + '</strong>' : _tr.find('td:eq(2)').text() );
+                    }
+                })
+                .fail()            
+        });        
+    </script>   
+{% endblock %}

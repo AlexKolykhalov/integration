@@ -1,0 +1,775 @@
+{% extends 'index.html' %}
+
+{% block app_content %}    
+    <!-- <div id="chartdiv" style="width: 80%; height: 300px;"></div> -->        
+    <h4>{% if base %}<strong>{{ base }}</strong>{% else %}<strong>Массовые операции</strong>{% endif %}</h4>
+    <p id="db" hidden>{{ db }}</p>
+    
+    <h5><strong>Данные по задолженности</strong></h5>
+    <div class="form-group row">
+        <div class="col-xs-12">
+            <form class="form-inline">
+                <label for="datetime_dz" style="font-size: 13px;">Период отчета</label>
+                <div class="input-group date" id="datetimepicker2">
+                    <input type="text" id="datetime_dz" required="required" class="form-control"/>
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-calendar"></i>
+                    </span>
+                </div>            
+                <button type="button" id="btn_dz" class="btn btn-default">Сформировать</button>
+            </form>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-xs-6">
+            <table id="table_1" class="table table-bordered table-hover" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th style="font-size: 13px;">Район</th>
+                        <th style="font-size: 13px;">Сумма дебиторской задолженности (руб.)</th>
+                    </tr>
+                </thead>
+                <tbody>                                       
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Итого:</th>
+                        <th id="total_summ_dz">0.00</th>                        
+                    </tr>
+                </tfoot>
+            </table>            
+        </div>        
+    </div>
+    <h5><strong>Данные по оплатам</strong></h5>
+    <div class="form-group row">
+        <div class="col-xs-12">
+            <form class="form-inline">
+                <label for="datetime_op_start" style="font-size: 13px;">Начало</label>
+                <div class="input-group date" id="datetimepicker3">
+                    <input type="text" id="datetime_op_start" required="required" class="form-control"/>
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-calendar"></i>
+                    </span>
+                </div>
+                <label for="datetime_op_end" style="font-size: 13px;">Окончание</label>
+                <div class="input-group date" id="datetimepicker4">
+                    <input type="text" id="datetime_op_end" required="required" class="form-control"/>
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-calendar"></i>
+                    </span>
+                </div>            
+                <button type="button" id="btn_op" class="btn btn-default">Сформировать</button>
+            </form>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-xs-6">
+            <table id="table_2" class="table table-bordered table-hover" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th style="font-size: 13px;">Район</th>
+                        <th style="font-size: 13px;">Сумма оплат (руб.)</th>                        
+                    </tr>
+                </thead>
+                <tbody>                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Итого:</th>
+                        <th id="total_summ_op">0.00</th>                        
+                    </tr>
+                </tfoot>                
+            </table>            
+        </div>        
+    </div>
+    <h5><strong>Данные по начислениям</strong></h5>
+    <div></div>
+    <div class="form-group row">
+        <div class="col-xs-12">
+            <form class="form-inline">
+                <label for="datetime_nach_start" style="font-size: 13px;">Начало</label>
+                <div class="input-group date" id="datetimepicker5">
+                    <input type="text" id="datetime_nach_start" required="required" class="form-control"/>
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-calendar"></i>
+                    </span>
+                </div>
+                <label for="datetime_nach_end" style="font-size: 13px;">Окончание</label>
+                <div class="input-group date" id="datetimepicker6">
+                    <input type="text" id="datetime_nach_end" required="required" class="form-control"/>
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-calendar"></i>
+                    </span>
+                </div>                
+                <button type="button" id="btn_nach" class="btn btn-default">Сформировать</button>
+            </form>
+        </div>            
+    </div>
+    <div class="form-group row">
+        <div class="col-xs-12">
+            <h5>Информация по счетчикам</h5>
+            <table id="table_3" class="table table-bordered table-hover" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th style="font-size: 13px;" rowspan="2">Район</th>                        
+                        <th style="font-size: 13px;" colspan="2">По показаниям</th>
+                        <th style="font-size: 13px;" colspan="2">По среднему</th>
+                        <th style="font-size: 13px;" colspan="2">При отсутсвии показаний</th>
+                        <th style="font-size: 13px;" colspan="2">Всего</th>                        
+                    </tr>
+                    <tr>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>                        
+                    </tr>
+                </thead>
+                <tbody>                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Итого:</th>
+                        <th id="total_vol_pok">0.000</th>
+                        <th id="total_summ_pok">0.00</th>
+                        <th id="total_vol_sred">0.000</th>
+                        <th id="total_summ_sred">0.00</th>
+                        <th id="total_vol_netpok">0.000</th>
+                        <th id="total_summ_netpok">0.00</th>
+                        <th id="total_vol_S">0.000</th>
+                        <th id="total_summ_S">0.00</th>
+                    </tr>
+                </tfoot>                
+            </table>            
+            <h5>Информация по нормам</h5>
+            <table id="table_4" class="table table-bordered table-hover" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th style="font-size: 13px;" rowspan="2">Район</th>                        
+                        <th style="font-size: 13px;" colspan="2">Отопление</th>
+                        <th style="font-size: 13px;" colspan="2">При наличии колонки</th>
+                        <th style="font-size: 13px;" colspan="2">При наличии ГВС</th>
+                        <th style="font-size: 13px;" colspan="2">При отсутствии ЦГВС</th>
+                        <th style="font-size: 13px;" colspan="2">Подогрев воды</th>
+                        <th style="font-size: 13px;" colspan="2">Всего</th>                        
+                    </tr>
+                    <tr>                        
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                        <th style="font-size: 13px;">куб.м</th>
+                        <th style="font-size: 13px;">руб</th>
+                    </tr>
+                </thead>
+                <tbody>                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Итого:</th>
+                        <th id="total_vol_ot">0.000</th>
+                        <th id="total_summ_ot">0.00</th>
+                        <th id="total_vol_k">0.000</th>
+                        <th id="total_summ_k">0.00</th>
+                        <th id="total_vol_pgvs">0.000</th>
+                        <th id="total_summ_pgvs">0.00</th>
+                        <th id="total_vol_cgvs">0.000</th>
+                        <th id="total_summ_cgvs">0.00</th>
+                        <th id="total_vol_pv">0.000</th>
+                        <th id="total_summ_pv">0.00</th>
+                        <th id="total_vol_N">0.000</th>
+                        <th id="total_summ_N">0.00</th>
+                    </tr>
+                </tfoot>                
+            </table>            
+        </div>
+    </div>
+    <h5><strong>Данные по абонентам</strong></h5>
+    <div class="form-group row">
+        <div class="col-xs-12">
+            <form class="form-inline">
+                <label for="datetime_ab" style="font-size: 13px;">Период отчета</label>
+                <div class="input-group date" id="datetimepicker7">
+                    <input type="text" id="datetime_ab" required="required" class="form-control"/>
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-calendar"></i>
+                    </span>
+                </div>            
+                <button type="button" id="btn_ab" class="btn btn-default">Сформировать</button>
+            </form>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-xs-12">
+            <table id="table_5" class="table table-bordered table-hover" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th style="font-size: 13px;" rowspan="2">Район</th>
+                        <th style="font-size: 13px;" rowspan="2">Всего</th>
+                        <th style="font-size: 13px;" colspan="3">Открыт</th>
+                        <th style="font-size: 13px;" colspan="3">Закрыт</th>
+                        
+                    </tr>
+                    <tr>
+                        <th style="font-size: 13px;">Подключен</th>
+                        <th style="font-size: 13px;">Отключен</th>
+                        <th style="font-size: 13px;">Всего</th>
+                        <th style="font-size: 13px;">Подключен</th>
+                        <th style="font-size: 13px;">Отключен</th>
+                        <th style="font-size: 13px;">Всего</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Итого:</th>
+                        <th id="total_ab">0</th>
+                        <th id="total_otkr_podkl">0</th>
+                        <th id="total_otkr_otkl">0</th>
+                        <th id="total_otkr">0</th>
+                        <th id="total_zark_podkl">0</th>
+                        <th id="total_zark_otkl">0</th>
+                        <th id="total_zark">0</th>
+                    </tr>                    
+                </tfoot>
+            </table>            
+        </div>        
+    </div>
+{% endblock %}
+
+{% block app_scripts %}
+    <!-- Resources amcharts
+    <script src="https://www.amcharts.com/lib/4/core.js"></script>
+    <script src="https://www.amcharts.com/lib/4/charts.js"></script>    
+    <script src="https://www.amcharts.com/lib/4/themes/animated.js"></script> -->
+    
+    <!-- Resources -->
+    <script src="{{ url_for('static', filename='js/accounting.js') }}"></script>
+    
+    <!-- #datetimepicker -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+            
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/js/dataTables.bootstrap.min.js"></script>    
+
+    <script>
+        function get_data(ajaxUrl, db, mode, period_start, period_end) {
+            return new Promise(function(resolve, reject) {                
+                $.post(ajaxUrl, {db: db, mode: mode, period_start: period_start, period_end: period_end})
+                    .done(function(response) { resolve(response) })
+                    .fail(function() { reject('') });
+            });            
+        }
+        
+        // custom sort with separator eqaul one space
+        jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+            "numeric-comma-pre": function (a) {                
+                var x = a.replace(/\s+/g, '');                
+                // for sorting table_5
+                if (x.indexOf('>') !== -1 && x.indexOf('<', 2) !== -1) {                    
+                    x = x.slice(x.indexOf('>')+1, x.indexOf('<', 2));                    
+                }                
+                return parseFloat(x);
+            },
+            "numeric-comma-asc": function (a, b) {                
+                return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+            },
+            "numeric-comma-desc": function (a, b) {                
+                return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+            }
+        });
+        
+        // custom processing
+        jQuery.fn.dataTable.Api.register( 'processing()', function ( show ) {
+            return this.iterator( 'table', function ( ctx ) {
+                ctx.oApi._fnProcessingDisplay( ctx, show );
+            } );
+        } );
+
+        // init DataTables        
+        var table_1 = $('#table_1').DataTable({
+            "data": [['---', '0.00']],
+            "processing": true,
+            "columnDefs": [
+                {
+                    targets: [1],
+                    type: 'numeric-comma',                    
+                    className: 'text-right'
+                }                
+            ],
+            "language": {                
+                'processing': "Подождите...",
+                'loadingRecords': "Загрузка записей...",
+                'emptyTable': "В таблице отсутствуют данные",
+                'thousands': " "
+            },
+            "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": false,
+            "bInfo": false,
+            "bAutoWidth": false
+        });
+
+        var table_2 = $('#table_2').DataTable({
+            "data": [['---', '0.00']],
+            "processing": true,
+            "columnDefs": [
+                {
+                    targets: [1],
+                    type: 'numeric-comma',                    
+                    className: 'text-right'
+                }
+            ],
+            "language": {                
+                'processing': "Подождите...",
+                'loadingRecords': "Загрузка записей...",
+                'emptyTable': "В таблице отсутствуют данные",
+                'thousands': " "
+            },
+            "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": false,
+            "bInfo": false,
+            "bAutoWidth": false 
+        });
+
+        var table_3 = $('#table_3').DataTable({
+            "data": [['---', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00']],
+            "processing": true,
+            "columnDefs": [
+                {
+                    targets: [1, 2, 3, 4, 5, 6, 7, 8],
+                    type: 'numeric-comma', 
+                    className: 'text-right'
+                }
+            ],
+            "language": {                
+                'processing': "Подождите...",
+                'loadingRecords': "Загрузка записей...",
+                'emptyTable': "В таблице отсутствуют данные",
+                'thousands': " "
+            },
+            "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": false,
+            "bInfo": false,
+            "bAutoWidth": false 
+        });
+
+        var table_4 = $('#table_4').DataTable({
+            "data": [['---', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00']],
+            "processing": true,
+            "columnDefs": [
+                {
+                    targets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                    type: 'numeric-comma',
+                    className: 'text-right'
+                }
+            ],
+            "language": {
+                'processing': "Подождите...",
+                'loadingRecords': "Загрузка записей...",
+                'emptyTable': "В таблице отсутствуют данные",
+                'thousands': " "
+            },
+            "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": false,
+            "bInfo": false,
+            "bAutoWidth": false 
+        });
+
+        var table_5 = $('#table_5').DataTable({
+            "data": [['---', '0', '0', '0', '0', '0', '0', '0']],
+            "processing": true,
+            "columnDefs": [
+                {
+                    targets: [1, 2, 3, 4, 5, 6, 7],
+                    type: 'numeric-comma', 
+                    className: 'text-right'
+                },
+                {
+                    targets: [2, 3, 4, 5, 6, 7],                    
+                    "render": function (data, type, row, meta) {                        
+                        if ((data === '0') || (data === 0)) {
+                            return '0';                            
+                        } else {                            
+                            var
+                                _Url,
+                                db = row[8],
+                                period     = $('#datetime_ab').val(),
+                                new_period = period.replace('.2', '.4');
+                                                        
+                            if (meta.col == 2) {
+                                // открыт-подключен
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='on', podkl='podkl') }}";
+                            } else if (meta.col == 3) {
+                                // открыт-отключен
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='on', podkl='otkl') }}";
+                            } else if (meta.col == 4) {
+                                // открыт
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='on') }}";
+                            } else if (meta.col == 5) {
+                                // закрыт-подключен
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='off', podkl='podkl') }}";
+                            } else if (meta.col == 6) {
+                                // закрыт-отключен
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='off', podkl='otkl') }}";
+                            } else if (meta.col == 7) {
+                                // закрыт
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='off') }}";
+                            }                            
+                            _Url_ = _Url.replace('/period_start/', '/'+new_period+'/').replace('/replace/', '/'+db+'/');
+                            return '<a href="'+_Url_+'">'+data+'</a>';
+                        }
+                    }
+                }
+            ],
+            "language":            
+            {
+                'processing': "Подождите...",
+                'loadingRecords': "Загрузка записей...",
+                'emptyTable': "В таблице отсутствуют данные",
+                'thousands': " "
+            },
+            "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": false,
+            "bInfo": false,
+            "bAutoWidth": false 
+        });
+
+        // init datetimepickers
+        $('#datetimepicker2').datetimepicker({
+            locale: 'ru',
+            format: 'DD.MM.YYYY'
+        });
+        
+        $("#datetimepicker3").datetimepicker({
+            locale: 'ru',
+            format: 'DD.MM.YYYY'
+        });
+
+        $("#datetimepicker4").datetimepicker({
+            locale: 'ru',
+            format: 'DD.MM.YYYY',
+            useCurrent: false
+        });
+
+        $("#datetimepicker3").on("dp.change", function (e) {
+            $('#datetimepicker4').data("DateTimePicker").minDate(e.date);
+        });
+
+        $("#datetimepicker4").on("dp.change", function (e) {
+            $('#datetimepicker3').data("DateTimePicker").maxDate(e.date);
+        });
+
+        $("#datetimepicker5").datetimepicker({
+            locale: 'ru',
+            format: 'DD.MM.YYYY'
+        });
+
+        $("#datetimepicker6").datetimepicker({
+            locale: 'ru',
+            format: 'DD.MM.YYYY',
+            useCurrent: false
+        });
+
+        $("#datetimepicker5").on("dp.change", function (e) {
+            $('#datetimepicker6').data("DateTimePicker").minDate(e.date);
+        });
+
+        $("#datetimepicker6").on("dp.change", function (e) {
+            $('#datetimepicker5').data("DateTimePicker").maxDate(e.date);
+        });
+
+        $("#datetimepicker7").datetimepicker({
+            locale: 'ru',
+            format: 'DD.MM.YYYY'
+        });
+
+        // buttons
+        $('#btn_dz').click(function() {
+            if ($('#datetime_dz').val() == '') {
+                show_alert('alert-danger', 'Не заполнена дата периода отчета!');
+                return false;    
+            }
+                       
+            var
+                total_summ = 0,
+                db         = $('#db').text(),
+                period     = $('#datetime_dz').val().replace('.2', '.4'),
+                ajaxUrl    = "{{ url_for('main.get_data') }}";
+            
+            table_1.processing(true);
+            get_data(ajaxUrl=ajaxUrl, db=db, mode='dz', period_start=period, period_end='')
+                .then(
+                    function(result) {
+                        table_1.clear();
+                        $.each(result, function (index, value) {
+                            table_1.row.add(value).draw();
+                            total_summ = total_summ + parseFloat(value[1].replace(/\s+/g, ''));
+                        });
+                        table_1.processing(false);                                                
+                        $('#total_summ_dz').html(accounting.formatNumber(total_summ, 2, " "));                        
+                    },
+                    function(result) {
+                        table_1.clear();
+                        table_1.row.add(['---', '0.00']).draw();
+                        table_1.processing(false);
+                    }
+                );            
+        });
+
+        $('#btn_op').click(function() {
+            if ($('#datetime_op_start').val() == '' || $('#datetime_op_end').val() == '') {
+                show_alert('alert-danger', 'Не заполнена одна из дат периода отчета!');
+                return false;    
+            }
+
+            var                 
+                total_summ   = 0,
+                db           = $('#db').text(),
+                period_start = $('#datetime_op_start').val().replace('.2', '.4'),
+                period_end   = $('#datetime_op_end').val().replace('.2', '.4'),                
+                ajaxUrl      = "{{ url_for('main.get_data') }}";                                        
+
+            table_2.processing(true);
+            get_data(ajaxUrl=ajaxUrl, db=db, mode='op', period_start=period_start, period_end=period_end)
+                .then(
+                    function(result) {
+                        table_2.clear();
+                        $.each(result, function (index, value) {
+                            table_2.row.add(value).draw();
+                            total_summ = total_summ + parseFloat(value[1].replace(/\s+/g, ''));
+                        });
+                        table_2.processing(false);                                                
+                        $('#total_summ_op').html(accounting.formatNumber(total_summ, 2, " "));                        
+                    },
+                    function(result) {
+                        table_2.clear();
+                        table_2.row.add(['---', '0.00']).draw();
+                        table_2.processing(false);
+                    }
+                );
+        });
+        
+        $('#btn_nach').click(function() {
+            
+            if ($('#datetime_nach_start').val() == '' || $('#datetime_nach_end').val() == '') {
+                show_alert('alert-danger', 'Не заполнена одна из дат периода отчета!');
+                return false;    
+            }
+
+            var                 
+                total_vol_pok     = 0, 
+                total_summ_pok    = 0, 
+                total_vol_sred    = 0, 
+                total_summ_sred   = 0, 
+                total_vol_netpok  = 0, 
+                total_summ_netpok = 0, 
+                total_vol_S       = 0, 
+                total_summ_S      = 0, 
+                
+                total_vol_ot    = 0, 
+                total_summ_ot   = 0, 
+                total_vol_k     = 0, 
+                total_summ_k    = 0, 
+                total_vol_pgvs  = 0, 
+                total_summ_pgvs = 0, 
+                total_vol_cgvs  = 0, 
+                total_summ_cgvs = 0, 
+                total_vol_pv    = 0, 
+                total_summ_pv   = 0, 
+                total_vol_N     = 0, 
+                total_summ_N    = 0, 
+                
+                db           = $('#db').text(),
+                period_start = $('#datetime_nach_start').val().replace('.2', '.4'),
+                period_end   = $('#datetime_nach_end').val().replace('.2', '.4'),                
+                ajaxUrl      = "{{ url_for('main.get_data') }}";                      
+                
+            table_3.processing(true);
+            table_4.processing(true);
+            get_data(ajaxUrl=ajaxUrl, db=db, mode='nach', period_start=period_start, period_end=period_end)
+                .then(
+                    function(result) {
+                        table_3.clear();
+                        table_4.clear();
+                        $.each(result, function (index, value) {
+                            table_3.row.add(value[0]).draw();
+                            table_4.row.add(value[1]).draw();
+                            
+                            total_vol_pok     = total_vol_pok + parseFloat(value[0][1].replace(/\s+/g, ''));
+                            total_summ_pok    = total_summ_pok + parseFloat(value[0][2].replace(/\s+/g, ''));                            
+                            total_vol_sred    = total_vol_sred + parseFloat(value[0][3].replace(/\s+/g, ''));
+                            total_summ_sred   = total_summ_sred + parseFloat(value[0][4].replace(/\s+/g, ''));
+                            total_vol_netpok  = total_vol_netpok + parseFloat(value[0][5].replace(/\s+/g, ''));
+                            total_summ_netpok = total_summ_netpok + parseFloat(value[0][6].replace(/\s+/g, ''));
+                            total_vol_S       = total_vol_S + parseFloat(value[0][7].replace(/\s+/g, ''));
+                            total_summ_S      = total_summ_S + parseFloat(value[0][8].replace(/\s+/g, ''));                            
+                            
+                            total_vol_ot    = total_vol_ot + parseFloat(value[1][1].replace(/\s+/g, ''));
+                            total_summ_ot   = total_summ_ot + parseFloat(value[1][2].replace(/\s+/g, ''));
+                            total_vol_k     = total_vol_k + parseFloat(value[1][3].replace(/\s+/g, ''));
+                            total_summ_k    = total_summ_k + parseFloat(value[1][4].replace(/\s+/g, ''));
+                            total_vol_pgvs  = total_vol_pgvs + parseFloat(value[1][5].replace(/\s+/g, ''));
+                            total_summ_pgvs = total_summ_pgvs + parseFloat(value[1][6].replace(/\s+/g, ''));
+                            total_vol_cgvs  = total_vol_cgvs + parseFloat(value[1][7].replace(/\s+/g, ''));
+                            total_summ_cgvs = total_summ_cgvs + parseFloat(value[1][8].replace(/\s+/g, ''));
+                            total_vol_pv    = total_vol_pv + parseFloat(value[1][9].replace(/\s+/g, ''));
+                            total_summ_pv   = total_summ_pv + parseFloat(value[1][10].replace(/\s+/g, ''));
+                            total_vol_N     = total_vol_N + parseFloat(value[1][11].replace(/\s+/g, ''));
+                            total_summ_N    = total_summ_N + parseFloat(value[1][12].replace(/\s+/g, ''));
+                            
+                        });
+                        table_3.processing(false);
+                        table_4.processing(false);
+                                                
+                        $('#total_vol_pok').html(accounting.formatNumber(total_vol_pok, 3, " "));
+                        $('#total_summ_pok').html(accounting.formatNumber(total_summ_pok, 2, " "));
+                        $('#total_vol_sred').html(accounting.formatNumber(total_vol_sred, 3, " "));
+                        $('#total_summ_sred').html(accounting.formatNumber(total_summ_sred, 2, " "));
+                        $('#total_vol_netpok').html(accounting.formatNumber(total_vol_netpok, 3, " "));
+                        $('#total_summ_netpok').html(accounting.formatNumber(total_summ_netpok, 2, " "));
+                        $('#total_vol_S').html(accounting.formatNumber(total_vol_S, 3, " "));
+                        $('#total_summ_S').html(accounting.formatNumber(total_summ_S, 2, " "));
+
+                        $('#total_vol_ot').html(accounting.formatNumber(total_vol_ot, 3, " "));
+                        $('#total_summ_ot').html(accounting.formatNumber(total_summ_ot, 2, " "));
+                        $('#total_vol_k').html(accounting.formatNumber(total_vol_k, 3, " "));
+                        $('#total_summ_k').html(accounting.formatNumber(total_summ_k, 2, " "));
+                        $('#total_vol_pgvs').html(accounting.formatNumber(total_vol_pgvs, 3, " "));
+                        $('#total_summ_pgvs').html(accounting.formatNumber(total_summ_pgvs, 2, " "));
+                        $('#total_vol_cgvs').html(accounting.formatNumber(total_vol_cgvs, 3, " "));
+                        $('#total_summ_cgvs').html(accounting.formatNumber(total_summ_cgvs, 2, " "));
+                        $('#total_vol_pv').html(accounting.formatNumber(total_vol_pv, 3, " "));
+                        $('#total_summ_pv').html(accounting.formatNumber(total_summ_pv, 2, " "));
+                        $('#total_vol_N').html(accounting.formatNumber(total_vol_N, 3, " "));
+                        $('#total_summ_N').html(accounting.formatNumber(total_summ_N, 2, " "));
+                    },
+                    function(result) {
+                        table_3.clear();
+                        table_4.clear();
+                        table_3.row.add(['---', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00']).draw();
+                        table_4.row.add(['---', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00', '0.000', '0.00']).draw();
+                        table_3.processing(false);
+                        table_4.processing(false);
+                    }
+                );     
+        });
+
+        $('#btn_ab').click(function() {
+            if ($('#datetime_ab').val() == '') {
+                show_alert('alert-danger', 'Не заполнена дата периода отчета!');
+                return false;    
+            }
+
+            var                 
+                total_ab         = 0,
+                total_otkr_podkl = 0,
+                total_otkr_otkl  = 0,
+                total_otkr       = 0,
+                total_zark_podkl = 0,
+                total_zark_otkl  = 0,
+                total_zark       = 0,
+                
+                db      = $('#db').text()
+                period  = $('#datetime_ab').val().replace('.2', '.4'),                
+                ajaxUrl = "{{ url_for('main.get_data') }}";
+                            
+            table_5.processing(true);
+            get_data(ajaxUrl=ajaxUrl, db=db, mode='ab', period_start=period, period_end='')
+                .then(
+                    function(result) {
+                        table_5.clear();                        
+                        $.each(result, function (index, value) {                            
+                            
+                            table_5.row.add(value).draw();                            
+                            
+                            total_ab         = total_ab         + parseInt(value[1]);
+                            total_otkr_podkl = total_otkr_podkl + parseInt(value[2]);
+                            total_otkr_otkl  = total_otkr_otkl  + parseInt(value[3]);
+                            total_otkr       = total_otkr       + parseInt(value[4]);
+                            total_zark_podkl = total_zark_podkl + parseInt(value[5]);
+                            total_zark_otkl  = total_zark_otkl  + parseInt(value[6]);
+                            total_zark       = total_zark       + parseInt(value[7]);
+                            
+                        });
+                        table_5.processing(false);
+
+                        $('#total_ab').html(total_ab);
+                        $('#total_otkr_podkl').html(total_otkr_podkl);
+                        $('#total_otkr_otkl').html(total_otkr_otkl);
+                        $('#total_otkr').html(total_otkr);
+                        $('#total_zark_podkl').html(total_zark_podkl);
+                        $('#total_zark_otkl').html(total_zark_otkl);
+                        $('#total_zark').html(total_zark);                        
+                    },
+                    function(result) {
+                        table_5.clear();                        
+                        table_5.row.add(['---', '0', '0', '0', '0', '0', '0', '0']).draw();                        
+                        table_5.processing(false);                        
+                    }
+                );
+        });
+        
+        // am4core.useTheme(am4themes_animated);        
+        // var chart = am4core.create("chartdiv", am4charts.XYChart);
+        // chart.numberFormatter.numberFormat = "#.00";
+        //chart.hiddenState.properties.opacity = 0; // this creates initial fade-in
+
+        // get data
+        // var data;
+        // get_data()
+        //     .then( 
+        //         function(result) {                                    
+        //             console.log(result);                    
+                    
+        //             chart.data = result;
+                    
+        //             // Create axes
+        //             var categoryAxis = chart.xAxes.push(new am4charts.CategoryAxis());
+        //             categoryAxis.dataFields.category = "country";
+        //             categoryAxis.renderer.grid.template.location = 0;
+        //             categoryAxis.renderer.minGridDistance = 30;
+
+        //             categoryAxis.renderer.labels.template.adapter.add("dy", function(dy, target) {
+        //             if (target.dataItem && target.dataItem.index & 2 == 2) {
+        //                 return dy + 25;
+        //             }
+        //             return dy;
+        //             });
+
+        //             var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+
+        //             // Create series
+        //             var series = chart.series.push(new am4charts.ColumnSeries());
+        //             series.dataFields.valueY = "value";
+        //             series.dataFields.categoryX = "country";
+        //             series.name = "Value";
+        //             series.columns.template.tooltipText = "{categoryX}: [bold]{valueY}[/]";
+        //             series.columns.template.fillOpacity = .8;
+
+        //             var columnTemplate = series.columns.template;
+        //             columnTemplate.strokeWidth = 2;
+        //             columnTemplate.strokeOpacity = 1;
+        //         },
+        //         function(result) {
+        //             data = [];
+        //         }
+        //     );
+                
+    </script>    
+{% endblock %}

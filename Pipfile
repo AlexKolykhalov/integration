@@ -1,0 +1,28 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+
+[packages]
+flask = "*"
+flask-sqlalchemy = "*"
+flask-migrate = "*"
+flask-wtf = "*"
+flask-mail = "*"
+pyjwt = "*"
+flask-bootstrap = "*"
+flask-login = "*"
+flask-socketio = "*"
+eventlet = "*"
+flask-uploads = "*"
+pyodbc = "*"
+sqlacodegen = "*"
+flask-redis = "*"
+dash = "*"
+dash-daq = "*"
+
+[requires]
+python_version = "3.7"
