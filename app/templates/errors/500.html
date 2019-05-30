@@ -4,6 +4,7 @@
 {% block app_content %}    
     <h4><strong>Внимание!</strong></h4>
     <p>Внутренная ошибка сервера.</p>
+    <p>{{ error }}</p>
     <br>    
-    <a href="{{url_for('main.index')}}"><strong>На главную</strong></a>
+    <a href="{{url_for('main.index')}}"><strong>На главную</strong></a>    
 {% endblock %}
