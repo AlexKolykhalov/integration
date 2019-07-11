@@ -3,6 +3,8 @@ from config import Config
 from flask_bootstrap import Bootstrap
 from flask_redis import FlaskRedis
 from flask_login import LoginManager
+from flask_socketio import SocketIO
+
 # from flask_sqlalchemy import SQLAlchemy
 # from flask_migrate import Migrate
 # from flask_uploads import UploadSet, IMAGES, configure_uploads
@@ -15,6 +17,7 @@ import dash_html_components as html
 
 bootstrap                                         = Bootstrap()
 redis_store                                       = FlaskRedis()
+socketio                                          = SocketIO()
 # db                                              = SQLAlchemy()
 # migrate                                         = Migrate()
 # images                                          = UploadSet('images', IMAGES)
@@ -41,7 +44,7 @@ def create_app(config_class=Config):
     bootstrap.init_app(app)    
     login_manager.init_app(app)
     redis_store.init_app(app, decode_responses=True)
-
+    socketio.init_app(app)
     # db.init_app(app)
     # migrate.init_app(app, db)
         
