@@ -94,13 +94,12 @@
                 _tr      = $(this).parents('tr'),
                 _str     = location.pathname,
                 _db      = _str.substring(_str.length-3, _str.length),
-                _fio     = _tr.find('td:eq(1)').text(),
-                _set     = _tr.find('td:eq(2)').text();
+                _fio     = _tr.find('td:eq(1)').text();                
             if ($(this).is(':checked')) {
                 _checked = true;
             }
             //меняем значение в базе 1С 
-            $.post('{{ url_for("main.change") }}', {db: _db, name: _fio, set: _set, value: _checked})
+            $.post('{{ url_for("main.change") }}', {db: _db, name: _fio, value: _checked})
                 .done( function(response) {
                     if (response != 'yes') {
                         show_alert('alert-danger', 'Ошибка связи с базой 1С: '+response);                        

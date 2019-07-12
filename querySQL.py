@@ -2,7 +2,9 @@
 sql_select1 = '''
                     SET NOCOUNT ON;
                     
-                    SET		@P1 = ? --период
+                    DECLARE @P1 DATETIME
+
+                    SET		@P1 = %s --период
                     --   	0x963228632B0039644C534B49F4AFF61D -- услуга населению "Газоснабжение природным газом"
 
                     SELECT
@@ -176,8 +178,10 @@ sql_select1 = '''
 sql_select2 = '''
                     SET NOCOUNT ON;
 
-                    SET		@P1 = ? --дата начала
-                    SET		@P2 = ? --дата окончания
+                    DECLARE @P1 DATETIME, @P2 DATETIME
+
+                    SET		@P1 = %s --дата начала
+                    SET		@P2 = %s --дата окончания
 
                     select (CAST(SUM(Сумма) AS NUMERIC(38, 2))) as SUMM                    
                     from 
@@ -287,8 +291,10 @@ sql_select2 = '''
 sql_select3 = '''
                     SET NOCOUNT ON;
 
-                    SET		@P1 = ? --дата начала
-                    SET		@P2 = ? --дата окончания
+                    DECLARE @P1 DATETIME, @P2 DATETIME
+
+                    SET		@P1 = %s --дата начала
+                    SET		@P2 = %s --дата окончания
 
                     SELECT sum(T3.Сумма) as SUMM, sum(T3.Объем) as VOL, T3.РежимПотребления as RZ
                     FROM (
@@ -314,7 +320,9 @@ sql_select3 = '''
 sql_select4 = '''
                     SET NOCOUNT ON;
                     
-                    SET		@P1 = ? --период
+                    DECLARE @P1 DATETIME
+
+                    SET		@P1 = %s --период
 
                     ----------------------------------------------------------------
                     -------/////АБОНЕНТЫ С ИХ СОСТОЯНИЕМ ПОДКЛЮЧЕНИЯ//////----------
@@ -388,8 +396,10 @@ sql_select4 = '''
 sql_select5 = '''
                     SET NOCOUNT ON;
                     
-                    SET		@P1 = ? --период
-                    SET		@P2 = ? --открыт/закрыт
+                    DECLARE @P1 DATETIME, @P2 NVARCHAR(20), @P3 NVARCHAR(20)
+
+                    SET		@P1 = %s --период
+                    SET		@P2 = %s --открыт/закрыт
                     <доп переменная>                    
                     
                     select dbo.РегистрСведений_СостояниеПодключениеУслуг.Абонент as Абонент, 
@@ -463,10 +473,11 @@ sql_select5 = '''
 # используется для получения данных по абоненту при нажатии на поле в таблице абонентов
 sql_select6 = '''
                 SET NOCOUNT ON;
-                    
-                SET		@P1 = ?
-                SET		@P2 = ?
-                
+
+                DECLARE @P1 DATETIME, @P2 NVARCHAR(20)
+
+                SET		@P1 = %s
+                SET		@P2 = %s                
 
                 select dbo.РегистрСведений_УстановленноеОборудование.Абонент as Абонент, 
                     Оборудование, 
@@ -859,3 +870,82 @@ sql_select9 = '''
                 order by dbo.Справочник_Пользователи.Наименование
 
             '''
+
+# получение сравнение количества проведнных документов начисления/льгот с их общим количеством за определенный учетный месяц
+sql_select10 = '''
+                DECLARE @date DATETIME2, @string1 NVARCHAR(200), @string2 NVARCHAR(200)
+
+                SET @date = %s
+                SET @string1 = %s
+                SET @string2 = %s
+
+                SELECT CASE WHEN (CASE WHEN T1.c1 = T2.c2 THEN 1 ELSE 0 END) = (CASE WHEN T3.c3 = T4.c4 THEN 1 ELSE 0 END) THEN 1 ELSE 0 END AS STATUS
+                FROM (
+                        SELECT Count(_IDRRef) AS c1
+                        FROM dbo._Document177 
+                        WHERE dbo._Document177._Fld2112 = @date
+                        AND (dbo._Document177._Fld2115 = @string1 OR dbo._Document177._Fld2115 = @string2)) AS T1, 
+                    (
+                        SELECT Count(_IDRRef) AS c2
+                        FROM dbo._Document177
+                        WHERE dbo._Document177._Fld2112 = @date
+                        AND dbo._Document177._Posted = 0x01) AS T2,
+                    (
+                        SELECT Count(_IDRRef) AS c3
+                        FROM dbo._Document188 
+                        WHERE dbo._Document188._Fld2239 = @date
+                        AND (dbo._Document188._Fld2242 = @string1 OR dbo._Document188._Fld2242 = @string2)) AS T3, 
+                    (
+                        SELECT Count(_IDRRef) AS c4
+                        FROM dbo._Document188
+                        WHERE dbo._Document188._Fld2239 = @date
+                        AND dbo._Document188._Posted = 0x01) AS T4
+''' 
+# изменение режима исправления ошибок
+sql_update1 = '''
+                SET NOCOUNT ON;
+
+                DECLARE @P1 BINARY, @P2 NVARCHAR(200)
+
+                SET @P1 = CONVERT(BINARY(1), %s)
+                SET @P2 = %s
+                
+                UPDATE dbo._InfoRg4272
+                SET dbo._InfoRg4272._Fld4275_L = @P1
+                FROM dbo._InfoRg4272
+                INNER JOIN dbo._Reference95 on dbo._InfoRg4272._Fld4273_RRRef = dbo._Reference95._IDRRef
+                WHERE dbo._InfoRg4272._Fld4274RRef = 0xB08FABBB26672A9248C34E140B5DBA9D 
+                AND dbo._Reference95._Description = @P2
+'''
+
+# изменение периода расчета
+sql_update2 = '''
+                SET NOCOUNT ON;
+
+                DECLARE @P1 DATETIME, @P2 BINARY
+
+                SET @P1 = %s
+                SET @P2 = CONVERT(BINARY(1), %s)
+                
+                UPDATE dbo._InfoRg2721
+                SET	dbo._InfoRg2721._Fld2723 = @P1,  
+                    dbo._InfoRg2721._Fld2725 = @P1,
+                    dbo._InfoRg2721._Fld2724 = @P2,
+                    dbo._InfoRg2721._Fld2726 = @P2
+'''
+
+# установка значений в регламетные задания
+sql_update3 = '''
+                SET NOCOUNT ON;
+
+                DECLARE @P1 BINARY, @P2 NVARCHAR(1), @P3 NVARCHAR(50)
+
+                SET @P1 = CONVERT(BINARY(1), %s)
+                SET @P2 = %s
+                SET @P3 = %s
+
+                UPDATE dbo._ScheduledJobs3995
+                SET	dbo._ScheduledJobs3995._Use = @P1,  
+                    dbo._ScheduledJobs3995._JobKey = @P2		
+                WHERE dbo._ScheduledJobs3995._Description = @P3
+'''
