@@ -1,12 +1,16 @@
-from flask import render_template, g, request, jsonify, redirect, url_for, abort
-from flask_login import login_required, current_user
-from app.main import bp
-from models import get_db_class, get_engine, session
-from app import redis_store
+from app        import redis_store
+from app.main   import bp
+from app.email  import send_email
+from models     import get_connection
+
+from flask          import render_template, g, request, jsonify, redirect, url_for, abort
+from flask_login    import login_required, current_user
+from datetime       import datetime, timedelta
+from decimal        import Decimal
+from pymssql        import ProgrammingError 
+
 import subprocess
 import querySQL
-from datetime import datetime, timedelta
-from decimal import Decimal
 
 
 @bp.before_app_request
@@ -132,26 +136,37 @@ def admin(db):
     bad_num_ls = []
     empty_grs  = []
     base = db+'_'+current_user.operating_mode
-    engine = get_engine(base)            
-    conn   = engine.connect()
+    conn = get_connection(base)
+    cursor = conn.cursor()
 
-    if redis_store.hmget(base, ['cache'])[0] == '':
-        users = conn.execute(querySQL.sql_select9).fetchall()
-        #!!! подумать о временных рамках получения данных для REDIS 
-        # for user in users:
-        #     key_id = user.username+'_'+base
-        #     redis_store.hmset(key_id, {'username': user['username'], 'sett': user['sett'], 'res': user['res']})            
-        #     redis_store.hset('users', key_id, key_id)
-        # redis_store.hmset(base, {'cache': '1'})
-    else:        
-        for key in redis_store.hkeys('users'):            
-            if key[-8:] == base:
-                data_user = redis_store.hgetall(key)            
-                users.append(data_user)    
-        users = sorted(users, key=lambda x: x['username'])
+    # if redis_store.hmget(base, ['cache'])[0] == '': # в данном случае НЕ ИСПОЛЬЗУЕТСЯ Redis, данные каждый раз берутся из БД  
+    #     users = conn.execute(querySQL.sql_select9).fetchall()        
+    #     !!! подумать о временных рамках получения данных для REDIS 
+    #     for user in users:
+    #         key_id = user.username+'_'+base
+    #         redis_store.hmset(key_id, {'username': user['username'], 'sett': user['sett'], 'res': user['res']})            
+    #         redis_store.hset('users', key_id, key_id)
+    #     redis_store.hmset(base, {'cache': '1'})
+    # else:        
+    #     for key in redis_store.hkeys('users'):            
+    #         if key[-8:] == base:
+    #             data_user = redis_store.hgetall(key)            
+    #             users.append(data_user)    
+    #     users = sorted(users, key=lambda x: x['username'])    
     #идет получение данных о неправильных нормерах и пустых ГРС
-    bad_num_ls = conn.execute(querySQL.sql_select7).fetchall()
-    empty_grs  = conn.execute(querySQL.sql_select8).fetchall()
+    # bad_num_ls = conn.execute(querySQL.sql_select7).fetchall()
+    # empty_grs  = conn.execute(querySQL.sql_select8).fetchall()
+    
+    # настройки пользователей
+    cursor.execute(querySQL.sql_select9)
+    users = cursor.fetchall()
+    # неправильные ЛС
+    cursor.execute(querySQL.sql_select7)    
+    bad_num_ls = cursor.fetchall()
+    # здания без ГРС
+    cursor.execute(querySQL.sql_select8)
+    empty_grs  = cursor.fetchall()
+    conn.close()
 
     return render_template('admin.html', users=users, basename=basename, bad_num_ls=bad_num_ls, empty_grs=empty_grs)
 
@@ -170,18 +185,20 @@ def abonents(db, period_start, ls, podkl=None):
     except subprocess.TimeoutExpired:            
         return render_template('abonents.html', data=result)    
     base   = db+'_'+current_user.operating_mode
-    engine = get_engine(base)            
-    conn   = engine.connect()    
+    conn = get_connection(base)            
+    cursor = conn.cursor()
     time   = datetime.strptime(period_start, '%d.%m.%Y')
     if podkl != None:
         podkl       = 'Подключен' if podkl == 'podkl' else 'Отключен'        
-        sql_select5 = querySQL.sql_select5.replace('<доп переменная>', 'SET @P3 = ?')
+        sql_select5 = querySQL.sql_select5.replace('<доп переменная>', 'SET @P3 = %s')
         sql_select  = sql_select5.replace('<доп условие>', 'and dbo.Перечисление_СостоянияПодключенияАбонента.Наименование = @P3')        
-        result      = conn.execute(sql_select, time, ls, podkl)
+        cursor.execute(sql_select, (time, ls, podkl))
+        result = cursor.fetchall()
     else:
         sql_select5 = querySQL.sql_select5.replace('<доп переменная>', '')
         sql_select  = sql_select5.replace('<доп условие>', '')
-        result      = conn.execute(sql_select, time, ls)    
+        cursor.execute(sql_select, (time, ls))
+        result = cursor.fetchall()
     if podkl == 'Подключен':
         podkl = ' - подключенные'
     elif podkl == 'Отключен':
@@ -190,6 +207,7 @@ def abonents(db, period_start, ls, podkl=None):
         podkl = ''
     ls = ' - открытые' if ls == 'on' else ' - закрытые'    
     text = ' на '+ period_start.replace('.4', '.2') +' ('+name+ls+podkl+')'
+    conn.close()
     
     return render_template('abonents.html', data=result, text=text)
 
@@ -207,9 +225,11 @@ def get_data_abonent():
     except subprocess.TimeoutExpired:
         return jsonify(data)    
     base   = db+'_'+current_user.operating_mode
-    engine = get_engine(base)
-    conn   = engine.connect()    
-    result = conn.execute(querySQL.sql_select6, time, ls)    
+    conn = get_connection(base)
+    cursor = conn.cursor()    
+    cursor.execute(querySQL.sql_select6, (time, ls))
+    result = cursor.fetchall()
+    conn.close()
     
     sch    = ''
     otp    = ''
@@ -291,53 +311,61 @@ def get_data():
         except subprocess.TimeoutExpired:            
             continue
         base   = db+'_'+current_user.operating_mode
-        engine = get_engine(base)            
-        conn   = engine.connect()
+        conn = get_connection(base)            
+        cursor = conn.cursor()
         
         if mode == 'dz':
             time       = datetime.strptime(period_start, '%d.%m.%Y')
             check_time = time + timedelta(days=1)
-            result     = conn.execute(querySQL.sql_select1, check_time)
             region = [name, '0.00']
-            for row in result:           
-                if row['SUMM'] == None:
-                    region = [name, '0.00']
-                else:                
-                    region = [name, '{0:,}'.format(row['SUMM']).replace(',', ' ')]
+            try:
+                cursor.execute(querySQL.sql_select1, (check_time,))
+                result = cursor.fetchone()
+                if result['SUMM'] != None:                
+                    region = [name, '{0:,}'.format(result['SUMM']).replace(',', ' ')]
+            except ProgrammingError as err:
+                html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Формирование отчета по задолженности </p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+                send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
         elif mode == 'op':
             time1  = datetime.strptime(period_start, '%d.%m.%Y')
-            time2  = datetime.strptime(period_end, '%d.%m.%Y')        
-            result = conn.execute(querySQL.sql_select2, time1, time2)
+            time2  = datetime.strptime(period_end, '%d.%m.%Y')
             region = [name, '0.00']
-            for row in result:           
-                if row['SUMM'] == None:
-                    region = [name, '0.00']
-                else:                
-                    region = [name, '{0:,}'.format(row['SUMM']).replace(',', ' ')]
+            try:
+                cursor.execute(querySQL.sql_select2, (time1, time2))
+                result = cursor.fetchone()
+                if result['SUMM'] != None:
+                    region = [name, '{0:,}'.format(result['SUMM']).replace(',', ' ')]
+            except ProgrammingError as err:
+                html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Формирование отчета по оплатам </p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+                send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
         elif mode == 'ab':
-            time       = datetime.strptime(period_start, '%d.%m.%Y')
-            result     = conn.execute(querySQL.sql_select4, time)
+            time       = datetime.strptime(period_start, '%d.%m.%Y')            
             total, podkl_o, otkl_o, total_o, podkl_z, otkl_z, total_z  = 0, 0, 0, 0, 0, 0, 0
             region = [name, total, podkl_o, otkl_o, total_o, podkl_z, otkl_z, total_z]
-            for row in result:
-                if row['СостояниеЛС'] == 'Открыт':
-                    if row['СостояниеПодключения'] == 'Подключен':
-                        podkl_o = podkl_o + row['Количество']
+            try:
+                cursor.execute(querySQL.sql_select4, (time,))
+                result = cursor.fetchall()
+                for row in result:
+                    if row['СостояниеЛС'] == 'Открыт':
+                        if row['СостояниеПодключения'] == 'Подключен':
+                            podkl_o = podkl_o + row['Количество']
+                        else:
+                            otkl_o = otkl_o + row['Количество']
+                        total_o = total_o + row['Количество']
                     else:
-                        otkl_o = otkl_o + row['Количество']
-                    total_o = total_o + row['Количество']
-                else:
-                    if row['СостояниеПодключения'] == 'Подключен':
-                        podkl_z = podkl_z + row['Количество']
-                    else:
-                        otkl_z = otkl_z + row['Количество']
-                    total_z = total_z + row['Количество']
-                total = total + row['Количество']            
+                        if row['СостояниеПодключения'] == 'Подключен':
+                            podkl_z = podkl_z + row['Количество']
+                        else:
+                            otkl_z = otkl_z + row['Количество']
+                        total_z = total_z + row['Количество']
+                    total = total + row['Количество']
+            except ProgrammingError as err:
+                html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Формирование отчета по абонентам </p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+                send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
             region = [name, str(total), str(podkl_o), str(otkl_o), str(total_o), str(podkl_z), str(otkl_z), str(total_z), db]
         else:
             time1  = datetime.strptime(period_start, '%d.%m.%Y')
-            time2  = datetime.strptime(period_end, '%d.%m.%Y') + timedelta(hours=23, minutes=59, seconds=59)
-            result = conn.execute(querySQL.sql_select3, time1, time2)            
+            time2  = datetime.strptime(period_end, '%d.%m.%Y') + timedelta(hours=23, minutes=59, seconds=59)            
             pok_v, sred_v, netpok_v, ot_v, k_v, pgvs_v, cgvs_v, pv_v  = '0.000', '0.000', '0.000', '0.000', '0.000', '0.000', '0.000', '0.000'
             pok_s, sred_s, netpok_s, ot_s, k_s, pgvs_s, cgvs_s, pv_s = '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'
             region = [[name, pok_v, pok_s, sred_v, sred_s, netpok_v, netpok_s, '0.000', '0.00'], [name, ot_v, ot_s, k_v, k_s, pgvs_v, pgvs_s, cgvs_v, cgvs_s, pv_v, pv_s, '0.000', '0.00']]
@@ -345,57 +373,63 @@ def get_data():
             itog1_s = Decimal('0.00')
             itog2_v = Decimal('0.000')
             itog2_s = Decimal('0.00')
-            for row in result:
-                summ = 0.00 if row['SUMM'] == None else row['SUMM']
-                vol  = 0.000 if row['VOL'] == None else row['VOL']
-                rz   = '' if row['RZ'] == None else row['RZ']
-                if rz == 'Начисление по показаниям':
-                    pok_v   = '{0:,}'.format(vol).replace(',', ' ')
-                    pok_s   = '{0:,}'.format(summ).replace(',', ' ')
-                    itog1_v = itog1_v + vol
-                    itog1_s = itog1_s + summ
-                elif rz == 'Начисление по среднему':
-                    sred_v  = '{0:,}'.format(vol).replace(',', ' ')
-                    sred_s  = '{0:,}'.format(summ).replace(',', ' ')
-                    itog1_v = itog1_v + vol
-                    itog1_s = itog1_s + summ                    
-                elif rz == 'Начисление при отсутсвии показаний':
-                    netpok_v = '{0:,}'.format(vol).replace(',', ' ')
-                    netpok_s = '{0:,}'.format(summ).replace(',', ' ')
-                    itog1_v  = itog1_v + vol
-                    itog1_s  = itog1_s + summ                    
-                elif rz == 'Отопление жилых помещений':
-                    ot_v    = '{0:,}'.format(vol).replace(',', ' ')
-                    ot_s    = '{0:,}'.format(summ).replace(',', ' ')
-                    itog2_v = itog2_v + vol
-                    itog2_s = itog2_s + summ                    
-                elif rz == 'Пищеприготовление  и подогрев воды при наличии колонки':
-                    k_v     = '{0:,}'.format(vol).replace(',', ' ')
-                    k_s     = '{0:,}'.format(summ).replace(',', ' ')
-                    itog2_v = itog2_v + vol
-                    itog2_s = itog2_s + summ                    
-                elif rz == 'Пищеприготовление при наличии ГВС':
-                    pgvs_v  = '{0:,}'.format(vol).replace(',', ' ')
-                    pgvs_s  = '{0:,}'.format(summ).replace(',', ' ')
-                    itog2_v = itog2_v + vol
-                    itog2_s = itog2_s + summ                    
-                elif rz == 'Пищеприготовление при отсутствии ЦГВС':
-                    cgvs_v  = '{0:,}'.format(vol).replace(',', ' ')
-                    cgvs_s  = '{0:,}'.format(summ).replace(',', ' ')
-                    itog2_v = itog2_v + vol
-                    itog2_s = itog2_s + summ                    
-                elif rz == 'Подогрев воды':
-                    pv_v    = '{0:,}'.format(vol).replace(',', ' ')
-                    pv_s    = '{0:,}'.format(summ).replace(',', ' ')
-                    itog2_v = itog2_v + vol
-                    itog2_s = itog2_s + summ                    
-                
-                itog1_v_ = '{0:,}'.format(itog1_v).replace(',', ' ')
-                itog1_s_ = '{0:,}'.format(itog1_s).replace(',', ' ')
-                itog2_v_ = '{0:,}'.format(itog2_v).replace(',', ' ')
-                itog2_s_ = '{0:,}'.format(itog2_s).replace(',', ' ')
-                
-                region = [[name, pok_v, pok_s, sred_v, sred_s, netpok_v, netpok_s, itog1_v_, itog1_s_], [name, ot_v, ot_s, k_v, k_s, pgvs_v, pgvs_s, cgvs_v, cgvs_s, pv_v, pv_s, itog2_v_, itog2_s_]]
+            try:
+                cursor.execute(querySQL.sql_select3, (time1, time2))
+                result = cursor.fetchall()
+                for row in result:
+                    summ = 0.00 if row['SUMM'] == None else row['SUMM']
+                    vol  = 0.000 if row['VOL'] == None else row['VOL']
+                    rz   = '' if row['RZ'] == None else row['RZ']
+                    if rz == 'Начисление по показаниям':
+                        pok_v   = '{0:,}'.format(vol).replace(',', ' ')
+                        pok_s   = '{0:,}'.format(summ).replace(',', ' ')
+                        itog1_v = itog1_v + vol
+                        itog1_s = itog1_s + summ
+                    elif rz == 'Начисление по среднему':
+                        sred_v  = '{0:,}'.format(vol).replace(',', ' ')
+                        sred_s  = '{0:,}'.format(summ).replace(',', ' ')
+                        itog1_v = itog1_v + vol
+                        itog1_s = itog1_s + summ                    
+                    elif rz == 'Начисление при отсутсвии показаний':
+                        netpok_v = '{0:,}'.format(vol).replace(',', ' ')
+                        netpok_s = '{0:,}'.format(summ).replace(',', ' ')
+                        itog1_v  = itog1_v + vol
+                        itog1_s  = itog1_s + summ                    
+                    elif rz == 'Отопление жилых помещений':
+                        ot_v    = '{0:,}'.format(vol).replace(',', ' ')
+                        ot_s    = '{0:,}'.format(summ).replace(',', ' ')
+                        itog2_v = itog2_v + vol
+                        itog2_s = itog2_s + summ                    
+                    elif rz == 'Пищеприготовление  и подогрев воды при наличии колонки':
+                        k_v     = '{0:,}'.format(vol).replace(',', ' ')
+                        k_s     = '{0:,}'.format(summ).replace(',', ' ')
+                        itog2_v = itog2_v + vol
+                        itog2_s = itog2_s + summ                    
+                    elif rz == 'Пищеприготовление при наличии ГВС':
+                        pgvs_v  = '{0:,}'.format(vol).replace(',', ' ')
+                        pgvs_s  = '{0:,}'.format(summ).replace(',', ' ')
+                        itog2_v = itog2_v + vol
+                        itog2_s = itog2_s + summ                    
+                    elif rz == 'Пищеприготовление при отсутствии ЦГВС':
+                        cgvs_v  = '{0:,}'.format(vol).replace(',', ' ')
+                        cgvs_s  = '{0:,}'.format(summ).replace(',', ' ')
+                        itog2_v = itog2_v + vol
+                        itog2_s = itog2_s + summ                    
+                    elif rz == 'Подогрев воды':
+                        pv_v    = '{0:,}'.format(vol).replace(',', ' ')
+                        pv_s    = '{0:,}'.format(summ).replace(',', ' ')
+                        itog2_v = itog2_v + vol
+                        itog2_s = itog2_s + summ                    
+                    
+                    itog1_v_ = '{0:,}'.format(itog1_v).replace(',', ' ')
+                    itog1_s_ = '{0:,}'.format(itog1_s).replace(',', ' ')
+                    itog2_v_ = '{0:,}'.format(itog2_v).replace(',', ' ')
+                    itog2_s_ = '{0:,}'.format(itog2_s).replace(',', ' ')
+                    
+                    region = [[name, pok_v, pok_s, sred_v, sred_s, netpok_v, netpok_s, itog1_v_, itog1_s_], [name, ot_v, ot_s, k_v, k_s, pgvs_v, pgvs_s, cgvs_v, cgvs_s, pv_v, pv_s, itog2_v_, itog2_s_]]
+            except ProgrammingError as err:
+                html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Формирование отчета по абонентам </p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+                send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)            
         conn.close()
         data.append(region)    
     return jsonify(data)
@@ -430,12 +464,11 @@ def change_mode():
 @login_required
 def change():
     db    = request.form['db'] # например 'grz'
-    name  = request.form['name']
-    set_n = request.form['set']    
-    if request.form['value'] == 'true':
-        value = b'\x01' 
-    else: 
-        value = b'\x00'
+    name  = request.form['name'] # например 'Гринь Ольга Викторовна'
+    if request.form['value'] == 'true':        
+        value = 1
+    else:        
+        value = 0
     
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
@@ -445,18 +478,12 @@ def change():
         return jsonify(basename)
     
     db = db+'_'+current_user.operating_mode
-    engine   = get_engine(db)    
-    Abonents = get_db_class('_Reference95', engine)
-    Pvh      = get_db_class('_Chrc4250', engine)
-    RegInfo  = get_db_class('_InfoRg4272', engine)    
-    
-    FIO_ref = session.query(Abonents).filter(Abonents._Description == name).first()._IDRRef
-    Set_ref = session.query(Pvh).filter(Pvh._Description == set_n).first()._IDRRef    
-    
-    session.query(RegInfo).filter(RegInfo._Fld4273_RRRef == FIO_ref, RegInfo._Fld4274RRef == Set_ref).update({RegInfo._Fld4275_L: value})
-    session.commit()
-    
-    redis_store.hset(name+'_'+db, 'res', value)
+    conn = get_connection(db)
+    cursor = conn.cursor()
+    cursor.execute(querySQL.sql_update1, (value, name))
+    conn.commit()
+    conn.close()    
+    #redis_store.hset(name+'_'+db, 'res', value) закометировал, т.к. не используется кэширование для Настройки пользователей (см. def admin(db):) 
     
     return jsonify('yes')
 
