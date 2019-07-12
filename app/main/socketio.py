@@ -1,16 +1,14 @@
 from app import socketio, redis_store
-from models import get_engine, get_db_class, session
+from models import get_connection
 from flask_socketio import emit
-from flask_login import current_user
 from datetime import datetime, timedelta
+
 import subprocess
+import querySQL
 
 # import dash
 # import dash_core_components as dcc
 # import dash_html_components as html
-
-# app = create_app()
-# socketio = SocketIO(app)
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
@@ -25,10 +23,10 @@ def change_period(data):
     # изменение даты запрета редактирования    
     time = datetime.strptime('01.'+data['TIME'].replace('.2', '.4'), '%d.%m.%Y')
     if data['CHECKED'] == True:
-        checked = b'\x01'
+        checked = 1
         PO      = '(v)'
     else:
-        checked = b'\x00'
+        checked = 0
         PO      = '( )'
     connect_bases = []
     for base in data['BASES']:        
@@ -39,20 +37,17 @@ def change_period(data):
             basename = redis_store.hmget(base[:3], ['name'])[0]
             emit('server_response', {'info': 'button', 'procedure': 'error', 'data': basename})            
             continue            
-        connect_bases.append(base)
+        connect_bases.append(base)        
         
-        # base = base+'_'+current_user.operating_mode
-        engine = get_engine(base)
-        InfoRg = get_db_class('_InfoRg2721', engine)        
-        row = session.query(InfoRg).first()
-        row._Fld2723 = time
-        row._Fld2725 = time
-        row._Fld2724 = checked
-        row._Fld2726 = checked        
+        conn = get_connection(base)
+        cursor = conn.cursor()
+        cursor.execute(querySQL.sql_update2, (time, checked))
+        conn.commit()
+        conn.close()
+
         redis_store.hmset(base, {'period': data['TIME'], 'PO': PO})
         
-    if len(connect_bases) > 0:
-        session.commit()
+    if len(connect_bases) > 0:        
         emit('server_response', {'info': 'button', 'procedure': 'change_period', 'data': connect_bases}, broadcast=True)
 
 @socketio.on('start_counting', namespace='/test')
@@ -60,28 +55,29 @@ def start_counting(data):
     # запуск расчета баз
     PNN = 'ПНН' if data['CHECKED'] == True else 'без ПНН'
     connect_bases = []
-    for base in data['BASES']:        
-        host = redis_store.hmget(base[:3], ['host'])[0]        
+    for base in data['BASES']:
+        host = redis_store.hmget(base[:3], ['host'])[0]
         try:
-            subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)            
-        except subprocess.TimeoutExpired:            
+            subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        except subprocess.TimeoutExpired:
             basename = redis_store.hmget(base[:3], ['name'])[0]
             emit('server_response', {'info': 'button', 'procedure': 'error', 'data': basename})
             continue        
-        # base = base+'_'+current_user.operating_mode
         connect_bases.append(base)
-        # engine  = get_engine(base)
-        # ShedJob = get_db_class('_ScheduledJobs3995', engine)
-        # if PNN == 'ПНН':
-        #     session.query(ShedJob).filter(ShedJob._Description == 'Запуск обработок: 2. Выполнить расчет с ПНН').update({ShedJob._Use: b'\x01', ShedJob._JobKey: '1'})
-        # else:
-        #     session.query(ShedJob).filter(ShedJob._Description == 'Запуск обработок: 1. Выполнить расчет без ПНН').update({ShedJob._Use: b'\x01', ShedJob._JobKey: '1'})        
+        
+        conn = get_connection(base)
+        cursor = conn.cursor()
+        if PNN == 'ПНН':
+            cursor.execute(querySQL.sql_update3, (1, 1, 'Запуск обработок: 2. Выполнить расчет с ПНН'))
+        else:
+            cursor.execute(querySQL.sql_update3, (1, 1, 'Запуск обработок: 1. Выполнить расчет без ПНН'))
+        conn.commit()
+        conn.close()        
         # minutes = redis_store.hmget(base, ['interval'])[0]
         # check_time = (datetime.now()+timedelta(minutes=int(minutes))).strftime('%d.%m.%Y %H:%M:%S')        
-        check_time = (datetime.now()).strftime('%d.%m.%Y %H:%M:%S') # DELETE        
+        check_time = (datetime.now()).strftime('%d.%m.%Y %H:%M:%S') # DELETE THIS ROW        
         redis_store.hmset(base, {'check_time': check_time, 'PNN': PNN, 'status': '1'}) # need to check 
-    if len(connect_bases) > 0:
-        # session.commit()
+    if len(connect_bases) > 0:        
         emit('server_response', {'info': 'button', 'procedure': 'start_counting', 'data': connect_bases}, broadcast=True)
 
 @socketio.on('remove_base', namespace='/test')
@@ -117,52 +113,35 @@ def server_response():
     lvt_work = redis_store.hmget('lvt_work', ['period', 'PO', 'check_time', 'PNN', 'status', 'cache'])
     lvt_test = redis_store.hmget('lvt_test', ['period', 'PO', 'check_time', 'PNN', 'status', 'cache'])
     usm_work = redis_store.hmget('usm_work', ['period', 'PO', 'check_time', 'PNN', 'status', 'cache'])    
-    usm_test = redis_store.hmget('usm_test', ['period', 'PO', 'check_time', 'PNN', 'status', 'cache'])    
+    usm_test = redis_store.hmget('usm_test', ['period', 'PO', 'check_time', 'PNN', 'status', 'cache'])        
     
-    # for base in redis_store.smembers('bases'):
     for base in redis_store.smembers('current_bases'):
-        for operating_mode in ['work', 'test']:        
-            if redis_store.hmget(base+'_'+operating_mode, 'status')[0] == '1': # if need to check
+        for operating_mode in ['work', 'test']:
+            if redis_store.hmget(base+'_'+operating_mode, 'status')[0] == '1': # если у базы статус "идет расчет", то проверяем по документам начисления и льгот
                 str_date   = redis_store.hmget(base+'_'+operating_mode, ['check_time'])[0]
                 check_time = datetime.strptime(str_date, '%d.%m.%Y %H:%M:%S')
-                if check_time < datetime.now():                
+                if check_time < datetime.now():
                     str_date = redis_store.hmget(base+'_'+operating_mode, ['period'])[0]
                     date = datetime.strptime('01.'+str_date.replace('.2', '.4'), '%d.%m.%Y')
-                    PNN  = redis_store.hmget(base+'_'+operating_mode, ['PNN'])[0]           
-                    host = redis_store.hmget(base, ['host'])[0]        
+                    PNN  = redis_store.hmget(base+'_'+operating_mode, ['PNN'])[0]
+                    host = redis_store.hmget(base, ['host'])[0]
                     try:
-                        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)                
-                    except subprocess.TimeoutExpired:            
+                        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+                    except subprocess.TimeoutExpired:
                         continue
-                    # engine = get_engine(base+'_'+operating_mode)
-                    # Doc_NS = get_db_class('_Document177', engine)
-                    # Doc_RL = get_db_class('_Document188', engine)
-                    # # получение результатов выполнения регламентного задания
-                    # # # _Fld2115 - поле Описание в таблице "Начисление абонентам списком"
-                    # # # _Fld2242 - поле Описание в таблице "Расчет льгот по абонентам"
-                    # s  = session.query(Doc_NS).filter((Doc_NS._Fld2112 == date) & ((Doc_NS._Fld2115 == 'Абоненты с групповым измерительным оборудованием (создано обработкой)') | (Doc_NS._Fld2115 == 'Абоненты без групповых счетчиков (создано обработкой)'))).count()
-                    # s1 = session.query(Doc_NS).filter(Doc_NS._Fld2112 == date, Doc_NS._Posted == b'\x01').count()
-                    
-                    # q  = session.query(Doc_RL).filter((Doc_RL._Fld2239 == date) & ((Doc_RL._Fld2242 == 'Абоненты с групповым измерительным оборудованием (создано обработкой)') | (Doc_RL._Fld2242 == 'Абоненты без групповых счетчиков (создано обработкой)'))).count()
-                    # q1 = session.query(Doc_RL).filter(Doc_RL._Fld2239 == date, Doc_RL._Posted == b'\x01').count()
-
-                    s = 0
-                    s1 = 0
-                    q = 0
-                    q1 = 0
-
-                    if s == s1 and q == q1: # количество проведенных = общему количеству за этот период            
-                        # ShedJob = get_db_class('_ScheduledJobs3995', engine)
-                        # # # завершение регламентного задания        
-                        # if PNN == 'ПНН':
-                        #     session.query(ShedJob).filter(ShedJob._Description == 'Запуск обработок: 2. Выполнить расчет с ПНН').update({ShedJob._Use: b'\x00', ShedJob._JobKey: '1'})
-                        # else:
-                        #     session.query(ShedJob).filter(ShedJob._Description == 'Запуск обработок: 1. Выполнить расчет без ПНН').update({ShedJob._Use: b'\x00', ShedJob._JobKey: '1'})                    
-                        # session.commit()    
-                        # redis_store.srem('bases', base)          # delete base from Redis            
-                        redis_store.hmset(base+'_'+operating_mode, {'check_time': '', 'status': '2'}) # this base if complite                       
-                        # redis_store.sadd('complite_bases', base) # insert to Redis list of complited bases
-            elif  redis_store.hmget(base+'_'+operating_mode, 'status')[0] == '2': # if complite base
+                    conn = get_connection(base+'_'+operating_mode)
+                    cursor = conn.cursor()
+                    cursor.execute(querySQL.sql_select10, (date, 'Абоненты с групповым измерительным оборудованием (создано обработкой)', 'Абоненты без групповых счетчиков (создано обработкой)'))
+                    result = cursor.fetchone()                    
+                    if result['STATUS'] == 1: # если количество проведенных документов начислений равно общему количеству документов за установленный учетный месяц
+                        if PNN == 'ПНН':
+                            cursor.execute(querySQL.sql_update3, (0, 1, 'Запуск обработок: 2. Выполнить расчет с ПНН'))
+                        else:
+                            cursor.execute(querySQL.sql_update3, (0, 1, 'Запуск обработок: 1. Выполнить расчет без ПНН'))
+                        conn.commit()
+                        redis_store.hmset(base+'_'+operating_mode, {'check_time': '', 'status': '2'}) # меняем статус базы на "расчет завершен"
+                    conn.close()
+            elif  redis_store.hmget(base+'_'+operating_mode, 'status')[0] == '2': # если у базы "расчет завершен"
                 complite_bases.append(base+'_'+operating_mode)
     emit('server_response', {'info': 'server', 'data': complite_bases}, broadcast=True)
 
