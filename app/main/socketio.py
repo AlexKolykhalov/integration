@@ -1,9 +1,11 @@
-from app import socketio, redis_store
-from models import get_connection
+from app            import socketio, redis_store
+from models         import get_connection
 from flask_socketio import emit
-from datetime import datetime, timedelta
+from datetime       import datetime, timedelta
+from sys            import platform
+from subprocess     import call, TimeoutExpired, DEVNULL 
 
-import subprocess
+# import subprocess
 import querySQL
 
 # import dash
@@ -32,8 +34,12 @@ def change_period(data):
     for base in data['BASES']:        
         host = redis_store.hmget(base[:3], ['host'])[0]
         try:
-            subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
-        except subprocess.TimeoutExpired:
+            # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+            if platform == 'linux':
+                call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+            else:
+                call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+        except TimeoutExpired:
             basename = redis_store.hmget(base[:3], ['name'])[0]
             emit('server_response', {'info': 'button', 'procedure': 'error', 'data': basename})            
             continue            
@@ -58,8 +64,12 @@ def start_counting(data):
     for base in data['BASES']:
         host = redis_store.hmget(base[:3], ['host'])[0]
         try:
-            subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
-        except subprocess.TimeoutExpired:
+            # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+            if platform == 'linux':
+                call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+            else:
+                call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+        except TimeoutExpired:
             basename = redis_store.hmget(base[:3], ['name'])[0]
             emit('server_response', {'info': 'button', 'procedure': 'error', 'data': basename})
             continue        
@@ -126,8 +136,12 @@ def server_response():
                     PNN  = redis_store.hmget(base+'_'+operating_mode, ['PNN'])[0]
                     host = redis_store.hmget(base, ['host'])[0]
                     try:
-                        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
-                    except subprocess.TimeoutExpired:
+                        #subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+                        if platform == 'linux':
+                            call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+                        else:
+                            call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+                    except TimeoutExpired:
                         continue
                     conn = get_connection(base+'_'+operating_mode)
                     cursor = conn.cursor()
