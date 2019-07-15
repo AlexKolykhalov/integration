@@ -8,8 +8,11 @@ from flask_login    import login_required, current_user
 from datetime       import datetime, timedelta
 from decimal        import Decimal
 from pymssql        import ProgrammingError 
+from sys            import platform
+from subprocess     import call, TimeoutExpired, DEVNULL
 
-import subprocess
+
+# import subprocess
 import querySQL
 
 
@@ -128,8 +131,12 @@ def admin(db):
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
     try:        
-        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)        
-    except subprocess.TimeoutExpired:
+        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        if platform == 'linux':
+            call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+        else:
+            call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+    except TimeoutExpired:
         return render_template('/errors/503.html', basename=basename)
     
     users      = []
@@ -180,9 +187,13 @@ def abonents(db, period_start, ls, podkl=None):
     result = []
     host = redis_store.hmget(db, ['host'])[0]
     name = redis_store.hmget(db, ['name'])[0]
-    try:
-        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)                
-    except subprocess.TimeoutExpired:            
+    try:        
+        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        if platform == 'linux':
+            call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+        else:
+            call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+    except TimeoutExpired:            
         return render_template('abonents.html', data=result)    
     base   = db+'_'+current_user.operating_mode
     conn = get_connection(base)            
@@ -220,9 +231,13 @@ def get_data_abonent():
     time   = datetime.strptime(request.form['period_start'], '%d.%m.%Y') # например '13.05.4019'
     data = []
     host   = redis_store.hmget(db, ['host'])[0]
-    try:
-        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
-    except subprocess.TimeoutExpired:
+    try:        
+        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        if platform == 'linux':
+            call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+        else:
+            call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+    except TimeoutExpired:
         return jsonify(data)    
     base   = db+'_'+current_user.operating_mode
     conn = get_connection(base)
@@ -306,9 +321,13 @@ def get_data():
     for db in bases:
         host = redis_store.hmget(db, ['host'])[0]
         name = redis_store.hmget(db, ['name'])[0]        
-        try:
-            subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)                
-        except subprocess.TimeoutExpired:            
+        try:            
+            # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+            if platform == 'linux':
+                call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+            else:
+                call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)                
+        except TimeoutExpired:            
             continue
         base   = db+'_'+current_user.operating_mode
         conn = get_connection(base)            
@@ -472,9 +491,13 @@ def change():
     
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
-    try:
-        subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)        
-    except subprocess.TimeoutExpired:
+    try:        
+        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        if platform == 'linux':
+            call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+        else:
+            call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)        
+    except TimeoutExpired:
         return jsonify(basename)
     
     db = db+'_'+current_user.operating_mode
