@@ -6,6 +6,6 @@ migrations
 
 all_models.py
 net.py
-config.py
+# config.py
 
 Pipfile.lock
