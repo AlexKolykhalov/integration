@@ -203,13 +203,16 @@
             })
 
             // change period
-            $('#btn_change_period').click(function() {                
+            $('#btn_change_period').click(function() {
                 if ( !$(this).hasClass('disabled') ) {
                     
                     if ($('#datetime_change_period').val() == '') {
-                        show_alert('alert-danger', 'Не заполнена дата запрета редактирования!');
+                        // show_alert('alert-danger', 'Не заполнена дата запрета редактирования!');
+                        $('#wrn_change_period').text('Не заполнена дата запрета редактирования!'). show();
                         return false;    
                     }
+
+                    $('#wrn_change_period').hide();
 
                     var 
                         _bases          = [],
@@ -236,7 +239,8 @@
                             _bases.push($(this).val());
                         });
                         if (_bases.length == 0) {
-                            show_alert('alert-danger', 'Список баз пуст!');                            
+                            // show_alert('alert-danger', 'Список баз пуст!');
+                            $('#wrn_change_period').text('Список баз пуст!').show()
                         } else {
                             console.log('CLIENT REQUEST push #btn_change_period', _bases, _time, _checked);
                             $(this).addClass('disabled');
@@ -258,9 +262,12 @@
                         _res            = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
 
                     if ($('#manage_title_'+_res).text() == 'Установите период!') {
-                        show_alert('alert-danger', 'Установите период расчета!');
+                        // show_alert('alert-danger', 'Установите период расчета!');
+                        $('#wrn_start_count').text('Установите период расчета!').show();
                         return false;    
                     }
+
+                    $('#wrn_start_count').hide();
 
                     if ($('#list_count').hasClass('invisible')) {                        
                         _bases.push(_res);
@@ -278,7 +285,8 @@
                             _bases.push($(this).val());                            
                         });
                         if (_bases.length == 0) {
-                            show_alert('alert-danger', 'Список баз пуст!');                            
+                            // show_alert('alert-danger', 'Список баз пуст!');
+                            $('#wrn_start_count').text('Список баз пуст!').show();                            
                         } else {
                             console.log('CLIENT REQUEST push #btn_start_count', _bases, _checked);
                             socket.emit('start_counting', {BASES: _bases, CHECKED: _checked});

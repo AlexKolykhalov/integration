@@ -17,6 +17,7 @@
                     </span>
                 </div>            
                 <button type="button" id="btn_dz" class="btn btn-default">Сформировать</button>
+                <label id="wrn_dz" style="color: red; display: none" >Не заполнена дата периода отчета!</label>
             </form>
         </div>
     </div>
@@ -59,6 +60,7 @@
                     </span>
                 </div>            
                 <button type="button" id="btn_op" class="btn btn-default">Сформировать</button>
+                <label id="wrn_op" style="color: red; display: none" >Не заполнена дата периода отчета!</label>
             </form>
         </div>
     </div>
@@ -102,6 +104,7 @@
                     </span>
                 </div>                
                 <button type="button" id="btn_nach" class="btn btn-default">Сформировать</button>
+                <label id="wrn_nach" style="color: red; display: none" >Не заполнена дата периода отчета!</label>
             </form>
         </div>            
     </div>
@@ -205,6 +208,7 @@
                     </span>
                 </div>            
                 <button type="button" id="btn_ab" class="btn btn-default">Сформировать</button>
+                <label id="wrn_ab" style="color: red; display: none" >Не заполнена дата периода отчета!</label>
             </form>
         </div>
     </div>
@@ -501,11 +505,13 @@
 
         // buttons
         $('#btn_dz').click(function() {
-            if ($('#datetime_dz').val() == '') {
-                show_alert('alert-danger', 'Не заполнена дата периода отчета!');
+            if ($('#datetime_dz').val() == '') {                
+                $('#wrn_dz').show();
                 return false;    
             }
                        
+            $('#wrn_dz').hide();
+
             var
                 total_summ = 0,
                 db         = $('#db').text(),
@@ -533,10 +539,12 @@
         });
 
         $('#btn_op').click(function() {
-            if ($('#datetime_op_start').val() == '' || $('#datetime_op_end').val() == '') {
-                show_alert('alert-danger', 'Не заполнена одна из дат периода отчета!');
+            if ($('#datetime_op_start').val() == '' || $('#datetime_op_end').val() == '') {                
+                $('#wrn_op').show();
                 return false;    
             }
+
+            $('#wrn_op').hide();
 
             var                 
                 total_summ   = 0,
@@ -567,10 +575,12 @@
         
         $('#btn_nach').click(function() {
             
-            if ($('#datetime_nach_start').val() == '' || $('#datetime_nach_end').val() == '') {
-                show_alert('alert-danger', 'Не заполнена одна из дат периода отчета!');
+            if ($('#datetime_nach_start').val() == '' || $('#datetime_nach_end').val() == '') {                
+                $('#wrn_nach').show();
                 return false;    
             }
+
+            $('#wrn_nach').hide();
 
             var                 
                 total_vol_pok     = 0, 
@@ -672,9 +682,11 @@
 
         $('#btn_ab').click(function() {
             if ($('#datetime_ab').val() == '') {
-                show_alert('alert-danger', 'Не заполнена дата периода отчета!');
+                $('#wrn_ab').show();
                 return false;    
             }
+            
+            $('#wrn_ab').hide();
 
             var                 
                 total_ab         = 0,

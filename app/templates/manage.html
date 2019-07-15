@@ -29,7 +29,10 @@
                         <div class="checkbox">
                             <label><input id="input_PO" type="checkbox" value="true">Признак возможности закрытия (периода/периода оплат)</label>
                         </div>
-                        <button type="button" id="btn_change_period" class={%if base in (g.bases_1_2) %}"btn btn-default disabled"{% else %}"btn btn-default"{% endif %}>Выполнить</button>                        
+                        <form class="form-inline">
+                            <button type="button" id="btn_change_period" class={%if base in (g.bases_1_2) %}"btn btn-default disabled"{% else %}"btn btn-default"{% endif %}>Выполнить</button>
+                            <label id="wrn_change_period" style="font-size: 89%; color: red; display: none" ></label>
+                        </form>
                     </div>
                     <div id="list_change_period" class={%if base %}"invisible"{% else %}"visible"{% endif %}>
                         <div class="col-xs-4">                        
@@ -52,7 +55,10 @@
                         <div class="checkbox">
                             <label><input id="input_PNN" type="checkbox" value="">ПНН</label>
                         </div>
-                        <button type="button" id="btn_start_count" class={%if base in (g.bases_1_2) %}"btn btn-default disabled"{% else %}"btn btn-default"{% endif %}>Выполнить</button>                        
+                        <form class="form-inline">
+                            <button type="button" id="btn_start_count" class={%if base in (g.bases_1_2) %}"btn btn-default disabled"{% else %}"btn btn-default"{% endif %}>Выполнить</button>
+                            <label id="wrn_start_count" style="font-size: 89%; color: red; display: none" ></label>
+                        </form>
                     </div>
                     <div id="list_count" class={%if base %}"invisible"{% else %}"visible"{% endif %}>
                         <div class="col-xs-4">                        
