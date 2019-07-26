@@ -12,7 +12,6 @@ from sys            import platform
 from subprocess     import call, TimeoutExpired, DEVNULL
 
 
-# import subprocess
 import querySQL
 
 
@@ -115,7 +114,7 @@ def admin(db):
             redis_store.hmset('usm_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.hmset('usm_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.sadd('current_bases', 'usm')        
-        
+                
         order = {'grz': '1', 'dbk': '2', 'lvt': '3', 'usm': '4'}
 
         data = {}        
@@ -130,14 +129,15 @@ def admin(db):
     
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
-    try:        
-        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+    try:
         if platform == 'linux':
             call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
         else:
             call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
     except TimeoutExpired:
         return render_template('/errors/503.html', basename=basename)
+
+    # cache()
     
     users      = []
     bad_num_ls = []
@@ -177,119 +177,131 @@ def admin(db):
 
     return render_template('admin.html', users=users, basename=basename, bad_num_ls=bad_num_ls, empty_grs=empty_grs)
 
-@bp.route('/abonents/<string:db>/<string:period_start>/<string:ls>')
-@bp.route('/abonents/<string:db>/<string:period_start>/<string:ls>/<string:podkl>')
+@bp.route('/abonents')
+@bp.route('/abonents/<string:db>/<string:period_start>/<string:status_ls>')
+@bp.route('/abonents/<string:db>/<string:period_start>/<string:status_ls>/<string:status_podkl>')
 @login_required
-def abonents(db, period_start, ls, podkl=None):
-    # проверка на валидность
-    if not validation(db=db, period_start=period_start, ls=ls, podkl=podkl):
-        return abort(404)    
-    result = []
-    host = redis_store.hmget(db, ['host'])[0]
-    name = redis_store.hmget(db, ['name'])[0]
-    try:        
-        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
-        if platform == 'linux':
-            call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+def abonents(db=None, period_start=None, status_ls=None, status_podkl=None):
+    if (db == None and period_start == None and status_ls == None and status_podkl == None):
+        # выводим страницу поиска
+        return render_template('abonents.html', status=1)
+    else:
+        # проверка на валидность
+        if not validation(db=db, period_start=period_start, status_ls=status_ls, status_podkl=status_podkl):
+            return abort(404)    
+        result = []
+        host = redis_store.hmget(db, ['host'])[0]
+        name = redis_store.hmget(db, ['name'])[0]
+        try:            
+            if platform == 'linux':
+                call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
+            else:
+                call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
+        except TimeoutExpired:            
+            # выводим пустую страницу
+            return render_template('abonents.html', data=result)    
+        base   = db+'_'+current_user.operating_mode
+        conn = get_connection(base)            
+        cursor = conn.cursor()
+        time   = datetime.strptime(period_start, '%d.%m.%Y')
+        sql_select5 = querySQL.sql_select5.replace('<доп переменная @P2>', 'SET @P2 = %s').replace('<доп условие открыт/закрыт>', "and case when dbo.Справочник_Абоненты.ДатаЗакрытия = '2001-01-01 00:00:00' then 'on' else 'off' end = @P2")
+        if status_podkl != None:
+            status_podkl = 'Подключен' if status_podkl == 'podkl' else 'Отключен'
+            sql_select5  = sql_select5.replace('<доп переменная @P3>', 'SET @P3 = %s').replace('<доп условие подключен/отключен>', 'and dbo.Перечисление_СостоянияПодключенияАбонента.Наименование = @P3')
+            sql_select   = sql_select5.replace('<доп переменная @P4>', '').replace('<доп таблица спр.Абоненты>', '').replace('<доп условие отбор ЛС>', '')
+            cursor.execute(sql_select, (time, status_ls, status_podkl))
+            result = cursor.fetchall()            
+        else:            
+            sql_select5  = sql_select5.replace('<доп переменная @P3>', '').replace('<доп условие подключен/отключен>', '')
+            sql_select   = sql_select5.replace('<доп переменная @P4>', '').replace('<доп таблица спр.Абоненты>', '').replace('<доп условие отбор ЛС>', '')
+            cursor.execute(sql_select, (time, status_ls))
+            result = cursor.fetchall()
+        if status_podkl == 'Подключен':
+            status_podkl = ' - подключенные'
+        elif status_podkl == 'Отключен':
+            status_podkl = ' - отключенные'
         else:
-            call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
-    except TimeoutExpired:            
-        return render_template('abonents.html', data=result)    
-    base   = db+'_'+current_user.operating_mode
-    conn = get_connection(base)            
-    cursor = conn.cursor()
-    time   = datetime.strptime(period_start, '%d.%m.%Y')
-    if podkl != None:
-        podkl       = 'Подключен' if podkl == 'podkl' else 'Отключен'        
-        sql_select5 = querySQL.sql_select5.replace('<доп переменная>', 'SET @P3 = %s')
-        sql_select  = sql_select5.replace('<доп условие>', 'and dbo.Перечисление_СостоянияПодключенияАбонента.Наименование = @P3')        
-        cursor.execute(sql_select, (time, ls, podkl))
-        result = cursor.fetchall()
-    else:
-        sql_select5 = querySQL.sql_select5.replace('<доп переменная>', '')
-        sql_select  = sql_select5.replace('<доп условие>', '')
-        cursor.execute(sql_select, (time, ls))
-        result = cursor.fetchall()
-    if podkl == 'Подключен':
-        podkl = ' - подключенные'
-    elif podkl == 'Отключен':
-        podkl = ' - отключенные'
-    else:
-        podkl = ''
-    ls = ' - открытые' if ls == 'on' else ' - закрытые'    
-    text = ' на '+ period_start.replace('.4', '.2') +' ('+name+ls+podkl+')'
-    conn.close()
-    
-    return render_template('abonents.html', data=result, text=text)
+            status_podkl = ''
+        status_ls = ' - открытые' if status_ls == 'on' else ' - закрытые'    
+        text = ' на '+ period_start.replace('.4', '.2') +' ('+name+status_ls+status_podkl+')'
+        conn.close()
+        # выводим таблицу абонентов
+        return render_template('abonents.html', data=result, text=text, status=0)
 
 # ajax
 @bp.route('/get_data_abonent', methods=['post'])
 @login_required
 def get_data_abonent():
-    db     = request.form['data'] # например grz_work
-    ls     = request.form['ls']   # например '037000010'
-    time   = datetime.strptime(request.form['period_start'], '%d.%m.%Y') # например '13.05.4019'
-    data = []
-    host   = redis_store.hmget(db, ['host'])[0]
-    try:        
-        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+    data = []    
+    ls   = request.form['ls']   # например '037000010'    
+    db   = ''
+
+    if 'period_start' in request.form:
+        time = datetime.strptime(request.form['period_start'], '%d.%m.%Y')
+    else:        
+        time = datetime.now()
+
+    if 'data' in request.form:
+        db = request.form['data']
+    else:
+        base_number = ls[0:3]
+        if base_number == '035':
+            db = 'lvt'
+        elif base_number == '037':
+            db = 'dbk'
+        elif base_number == '044':
+            db = 'lvt'
+        elif base_number == '047':
+            db = 'usm'
+
+    host = redis_store.hmget(db, ['host'])[0]
+    try:            
         if platform == 'linux':
             call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
         else:
             call(["ping", "-n", "1", host], timeout=0.25, stdout=DEVNULL)
-    except TimeoutExpired:
-        return jsonify(data)    
+    except (TimeoutExpired, TypeError):
+        return jsonify(data)
+    
     base   = db+'_'+current_user.operating_mode
-    conn = get_connection(base)
-    cursor = conn.cursor()    
-    cursor.execute(querySQL.sql_select6, (time, ls))
-    result = cursor.fetchall()
+    conn   = get_connection(base)
+    cursor = conn.cursor()
+
+    if 'search' in request.form:
+        sql_select5 = querySQL.sql_select5.replace('<доп переменная @P2>', '').replace('<доп условие открыт/закрыт>', '')
+        sql_select5 = sql_select5.replace('<доп переменная @P3>', '').replace('<доп условие подключен/отключен>', '')
+        sql_select  = sql_select5.replace('<доп переменная @P4>', 'SET @P4 = %s').replace('<доп таблица спр.Абоненты>', 'inner join dbo.Справочник_Абоненты on dbo.РегистрСведений_СостояниеПодключениеУслуг.Абонент = dbo.Справочник_Абоненты.Ссылка').replace('<доп условие отбор ЛС>', 'and dbo.Справочник_Абоненты.ЛицевойСчет = @P4')
+    
+        cursor.execute(sql_select, (time, ls))# получение данных по состоянию подключения и персональных данных
+        result = cursor.fetchone()
+        data = get_personaldata(result)
+        
+        cursor.execute(querySQL.sql_select6, (time, ls))# получение данных по установленному оборудованию
+        result = cursor.fetchall()
+        ob = get_equipments(result)
+        data.update(ob)
+        
+        cursor.execute(querySQL.sql_select11, (time, ls))# получение данных по параметрам расчета
+        result = cursor.fetchall()
+        param = get_parameters(result)
+        data.update(param)
+        
+        cursor.execute(querySQL.sql_select12, (time, ls))# получение данных по режимам потребления
+        result = cursor.fetchall()
+        reg = get_regimes(result)
+        data.update(reg)
+        
+        cursor.execute(querySQL.sql_select13, (time, ls))# получение данных по взаиморасчетам
+        result = cursor.fetchall()
+        acc = get_accounts(result)
+        data.update(acc)
+    else:        
+        sql_select = querySQL.sql_select6
+        cursor.execute(sql_select, (time, ls))# получение данных по установленному оборудованию
+        result = cursor.fetchall()
+        data   = get_equipments(result)
     conn.close()
     
-    sch    = ''
-    otp    = ''
-    pg     = ''
-    otp_pv = ''
-    cgv    = ''
-    vnp    = ''
-    for row in result:        
-        Адрес               = '' if row['Адрес'] == None else row['Адрес']
-        ВидДокумента        = '' if row['ВидДокумента'] == None else row['ВидДокумента']
-        НомерДокумента      = '' if row['НомерДокумента'] == None else row['НомерДокумента']
-        СерияДокумента      = '' if row['СерияДокумента'] == None else row['СерияДокумента']
-        ДатаВыдачиДокумента = check_type(row['ДатаВыдачиДокумента'])
-        if ДатаВыдачиДокумента != '':
-            ДатаВыдачиДокумента = ДатаВыдачиДокумента+'г. '        
-        КемВыданДокумент    = '' if row['КемВыданДокумент'] == None else row['КемВыданДокумент']
-        text_ab = Адрес+'<br>'+ВидДокумента+' '+СерияДокумента+' '+НомерДокумента+'<br>'+ДатаВыдачиДокумента+' '+КемВыданДокумент        
-        
-        if row['ТипОборудования'] == 'Счетчик ':
-            ДатаПоследнейПоверки = check_type(row['ДатаПоследнейПоверки'])
-            ДатаОчереднойПоверки = check_type(row['ДатаОчереднойПоверки'])
-            ПериодПоказаний      = check_type(row['ПериодПоказаний'])            
-            Показания            = Decimal('0.000') if row['Показания'] == None else row['Показания']
-            Показания            = '{0:,}'.format(Показания).replace(',', ' ')[:-4]
-            sch = sch + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>Показания: '+ Показания + ' на '+ ПериодПоказаний + '<br>Дата последней поверки: '+ДатаПоследнейПоверки+'<br>Дата следующей поверки: '+ДатаОчереднойПоверки+'<br><br>'
-        elif row['ТипОборудования'] == 'Отопительное оборудование':
-            otp = otp + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
-        elif row['ТипОборудования'] == 'Плита газовая':
-            pg = pg + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
-        elif row['ТипОборудования'] == 'Отопление + подогрев воды':
-            otp_pv = otp_pv + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
-        elif row['ТипОборудования'] == 'Центр. гор. водоснабжение':
-            cgv = cgv + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
-        elif row['ТипОборудования'] == 'Водонагревательные приборы':
-            vnp = vnp + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
-        else:
-            pass #Возможно будут еще типы оборудования
-
-    data = {'ЛичныеДанные':              text_ab,
-            'Счетчик':                   sch[:-4],
-            'ОтопительноеОборудование':  otp,
-            'ПлитаГазовая':              pg,
-            'ОтоплениеПодогрев':         otp_pv,
-            'ЦентрГорВодоснабжение':     cgv,
-            'ВодонагревательныеПриборы': vnp}
     return jsonify(data)
 
 # ajax
@@ -311,8 +323,8 @@ def get_data():
     
     db           = request.form['db']           # например grz
     mode         = request.form['mode']         # например dz
-    period_start = request.form['period_start'] # 13.05.4019
-    period_end   = request.form['period_end']   # 13.05.4019
+    period_start = request.form['period_start'] # 13.05.2019
+    period_end   = request.form['period_end']   # 13.05.2019
 
     data = []
     region = []    
@@ -321,8 +333,7 @@ def get_data():
     for db in bases:
         host = redis_store.hmget(db, ['host'])[0]
         name = redis_store.hmget(db, ['name'])[0]        
-        try:            
-            # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        try:
             if platform == 'linux':
                 call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
             else:
@@ -491,8 +502,7 @@ def change():
     
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
-    try:        
-        # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+    try:
         if platform == 'linux':
             call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
         else:
@@ -537,15 +547,16 @@ def clean():
     redis_store.hmset(base, {'period': '', 'PO': '', 'check_time': '', 'PNN': '', 'status': '0', 'cache': ''})
     return jsonify('')
 
-def validation(db=None, mode=None, period_start=None, period_end=None, ls=None, podkl=None):
+# function
+def validation(db=None, mode=None, period_start=None, period_end=None, status_ls=None, status_podkl=None):
     try:
         if db != None and db not in redis_store.smembers('current_bases'):
             raise SyntaxError()
         if mode != None and mode not in ['dz', 'op', 'nach', 'ab']:
             raise SyntaxError()
-        if ls != None and ls not in ['on', 'off']:
+        if status_ls != None and status_ls not in ['on', 'off']:
             raise SyntaxError()
-        if podkl not in ['podkl', 'otkl', None]:
+        if status_podkl not in ['podkl', 'otkl', None]:
             raise SyntaxError()
         if period_start != None:
             period_start = datetime.strptime(period_start, '%d.%m.%Y')
@@ -555,11 +566,156 @@ def validation(db=None, mode=None, period_start=None, period_end=None, ls=None, 
     except:
         return False
 
-def check_type(var):
-    if isinstance(var, str):
-        new_var = datetime.strptime(var, '%Y-%m-%d %H:%M:%S').strftime('%d.%m.%Y').replace('.4', '.2')
-    elif isinstance(var, datetime):
-        new_var = var.strftime('%d.%m.%Y').replace('.4', '.2')
-    else:
-        new_var  = ''
-    return new_var
+# # function
+# def cache():    
+#     time = datetime.now()
+#     for base in ['lvt']:
+#         # получение абонента
+#         ab(base, time)    
+#     # Thread(target=async_cache, args=()).start()
+
+# # function
+# def async_cache():
+#     pass
+
+
+def get_personaldata(result):
+    abon_data = {'PersonalData': '',
+                 'Status':       ''}
+    
+    if result == None:
+        return abon_data
+
+    Адрес               = '' if result['Адрес']               == None else '<br>Адрес: '+result['Адрес']
+    ВидДокумента        = '' if result['ВидДокумента']        == None else '<br>'       +result['ВидДокумента']    
+    СерияДокумента      = '' if result['СерияДокумента']      == None else ' ('          +result['СерияДокумента']
+    НомерДокумента      = '' if result['НомерДокумента']      == None else ' '          +result['НомерДокумента']    
+    ДатаВыдачиДокумента = '' if result['ДатаВыдачиДокумента'] == None else ')<br>'       +result['ДатаВыдачиДокумента']+'г. '    
+    КемВыданДокумент    = '' if result['КемВыданДокумент']    == None else ' '          +result['КемВыданДокумент']
+    
+    ЛицевойСчет  = 'Лицевой счет: '+result['ЛС']
+    ФИО          = '<br>ФИО: '+result['ФИО']
+    СостояниеЛС  = 'Открыт' if result['СостояниеЛС'] == 'on' else 'Закрыт'
+                    
+    PersonalData = ЛицевойСчет+ФИО+Адрес+ВидДокумента+СерияДокумента+НомерДокумента+ДатаВыдачиДокумента+КемВыданДокумент
+    Status       = СостояниеЛС+' ('+result['ДатаОткрытияЗакрытия']+')<br>'+result['СостояниеПодключения']+' ('+result['ДатаПодключенияОтключения']+')'
+
+    abon_data = {'PersonalData': PersonalData,
+                 'Status':       Status}
+
+    return abon_data
+
+def get_equipments(result):
+    sch = otp = pg = otp_pv = cgv = vnp = ''
+    for row in result:        
+        if row['ТипОборудования'] == 'Счетчик ':            
+            ДатаПоследнейПоверки = row['ДатаПоследнейПоверки']
+            ДатаОчереднойПоверки = row['ДатаОчереднойПоверки']
+            ПериодПоказаний      = row['ПериодПоказаний']
+            Показания            = Decimal('0.000') if row['Показания'] == None else row['Показания']
+            Показания            = '{0:,}'.format(Показания).replace(',', ' ')[:-4]
+            sch = sch + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>Показания: '+ Показания + ' на '+ ПериодПоказаний + '<br>Дата последней поверки: '+ДатаПоследнейПоверки+'<br>Дата следующей поверки: '+ДатаОчереднойПоверки+'<br>'
+        elif row['ТипОборудования'] == 'Отопительное оборудование':
+            otp = otp + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
+        elif row['ТипОборудования'] == 'Плита газовая':
+            pg = pg + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
+        elif row['ТипОборудования'] == 'Отопление + подогрев воды':
+            otp_pv = otp_pv + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
+        elif row['ТипОборудования'] == 'Центр. гор. водоснабжение':
+            cgv = cgv + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
+        elif row['ТипОборудования'] == 'Водонагревательные приборы':
+            vnp = vnp + row['Оборудование']+' ('+row['СостояниеОборудования']+')<br>'
+        else:
+            pass #Возможно будут еще типы оборудования
+        
+    ПУ      = '' if sch == '' else '<strong>Прибор учета</strong><br>'+sch+'<br>'
+    ОтОб    = '' if otp == '' else '<strong>Отопительное оборудование</strong><br>'+otp+'<br>'
+    ПГ      = '' if pg == '' else '<strong>Плита газовая</strong><br>'+pg+'<br>'
+    ОтПВ    = '' if otp_pv == '' else '<strong>Отопление + подогрев воды</strong><br>'+otp_pv+'<br>'
+    ЦГВ     = '' if cgv == '' else '<strong>Центр. гор. водоснабжение</strong><br>'+cgv+'<br>'
+    ВП      = '' if vnp == '' else '<strong>Водонагревательные приборы</strong><br>'+vnp+'<br>'        
+    
+    abon_data = {'Equipments': ПУ+ОтОб+ПГ+ОтПВ+ЦГВ+ВП}
+    
+    return abon_data
+
+def get_parameters(result):
+    param1 = param2 = param3 = param4 = param5 = param6 = ''
+    for row in result:
+        if row['Параметры'] == 'Количество собственников':
+            param1 = 'Количество собственников: '+row['Значения']+'<br>'
+        if row['Параметры'] == 'Наличие горячего водоснабжения':
+            param2 = 'Наличие горячего водоснабжения: '+row['Значения']+'<br>'
+        if row['Параметры'] == 'Количество проживающих':
+            param3 = 'Количество проживающих: '+row['Значения'].replace('.00', '')+'<br>'
+        if row['Параметры'] == 'Вид договора':
+            param4 = 'Вид договора: '+row['Значения']+'<br>'
+        if row['Параметры'] == 'Площадь жилая':
+            param5 = 'Площадь жилая: '+row['Значения']+'<br>'
+        if row['Параметры'] == 'Доля собственности':
+            param6 = 'Доля собственности: '+row['Значения']+'<br>'
+    abon_data = {'Parameters': param1+param2+param3+param4+param5+param6}
+
+    return abon_data
+
+def get_regimes(result):
+    uu = pu = param1 = param2 = param3 = param4 = param5 = ''
+    for row in result:
+        uu = '<strong>'+row['УзелУчета']+' ('+row['ДатаНачалаДействия']+')</strong><br>'
+        pu = '<span style="margin-left: 20px">'+row['Оборудование']+'</span><br>'
+        if row['РежимПотребления'] == 'Пищеприготовление  и подогрев воды при наличии колонки':
+            param1 = '<span style="margin-left: 40px">Пищеприготовление и подогрев воды при наличии колонки</span><br>'
+        if row['РежимПотребления'] == 'Пищеприготовление при наличии ГВС':
+            param2 = '<span style="margin-left: 40px">Пищеприготовление при наличии ГВС</span><br>'
+        if row['РежимПотребления'] == 'Пищеприготовление при отсутствии ЦГВС':
+            param3 = '<span style="margin-left: 40px">Пищеприготовление при отсутствии ЦГВС</span><br>'
+        if row['РежимПотребления'] == 'Отопление жилых помещений':
+            param4 = '<span style="margin-left: 40px">Отопление жилых помещений</span><br>'
+        if row['РежимПотребления'] == 'Подогрев воды':
+            param5 = '<span style="margin-left: 40px">Подогрев воды</span><br>'
+        
+    abon_data = {'Regimes': uu+pu+param1+param2+param3+param4+param5}
+
+    return abon_data
+
+def get_accounts(result):    
+    s1 = Decimal('0.00')
+    s2 = Decimal('0.00')
+    s3 = Decimal('0.00')
+    p0 = p1 = p2 = p3 = p4 = p5 = ''    
+    for row in result:        
+        p0 ='''<table class="table">
+                    <thead>                        
+                        <tr>
+                            <td style="font-size: 13px;">Услуга</td>
+                            <td align=right style="font-size: 13px;">Текущая</td>
+                            <td align=right style="font-size: 13px;">Рассрочка</td>
+                            <td align=right style="font-size: 13px;">Списанная</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        '''
+        
+        if row['Услуга'] == 'Газоснабжение природным газом':
+            var1 = '{0:,}'.format(row['ТекущаяЗадолженность']).replace(',', ' ')
+            var2 = '{0:,}'.format(row['Рассрочка']).replace(',', ' ')
+            var3 = '{0:,}'.format(row['СписаннаяЗадолженность']).replace(',', ' ')            
+            p1 = '<tr><td style="font-size: 13px;">Газоснабжение природным газом</td><td align=right>'+var1+'</td><td align=right>'+var2+'</td><td align=right>'+var3+'</td></tr>'
+        if row['Услуга'] == 'Гос пошлина':
+            var1 = '{0:,}'.format(row['ТекущаяЗадолженность']).replace(',', ' ')
+            var2 = '{0:,}'.format(row['Рассрочка']).replace(',', ' ')
+            var3 = '{0:,}'.format(row['СписаннаяЗадолженность']).replace(',', ' ')
+            p2 = '<tr><td style="font-size: 13px;">Госпошлина</td><td align=right>'+var1+'</td><td align=right>'+var2+'</td><td align=right>'+var3+'</td></tr>'        
+        s1 = s1 + row['ТекущаяЗадолженность']
+        s2 = s2 + row['Рассрочка']
+        s3 = s3 + row['СписаннаяЗадолженность']        
+        e3 = '{0:,}'.format(s1).replace(',', ' ')
+        e4 = '{0:,}'.format(s2).replace(',', ' ')
+        e5 = '{0:,}'.format(s3).replace(',', ' ')
+        p4 = '<tr><td><strong>ВСЕГО</strong></td><td align=right>'+e3+'</td><td align=right>'+e4+'</td><td align=right>'+e5+'</td></tr>'
+        p5 ='''</tbody>
+            </table>'''
+    
+    abon_data = {'Accounts': p0+p1+p2+p3+p4+p5}
+
+    return abon_data
