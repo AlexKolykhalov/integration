@@ -566,19 +566,6 @@ def validation(db=None, mode=None, period_start=None, period_end=None, status_ls
     except:
         return False
 
-# # function
-# def cache():    
-#     time = datetime.now()
-#     for base in ['lvt']:
-#         # получение абонента
-#         ab(base, time)    
-#     # Thread(target=async_cache, args=()).start()
-
-# # function
-# def async_cache():
-#     pass
-
-
 def get_personaldata(result):
     abon_data = {'PersonalData': '',
                  'Status':       ''}
@@ -664,15 +651,15 @@ def get_regimes(result):
         uu = '<strong>'+row['УзелУчета']+' ('+row['ДатаНачалаДействия']+')</strong><br>'
         pu = '<span style="margin-left: 20px">'+row['Оборудование']+'</span><br>'
         if row['РежимПотребления'] == 'Пищеприготовление  и подогрев воды при наличии колонки':
-            param1 = '<span style="margin-left: 40px">Пищеприготовление и подогрев воды при наличии колонки</span><br>'
+            param1 = '<span style="margin-left: 40px">Пищеприготовление и подогрев воды при наличии колонки ('+row['Действует']+')</span><br>'
         if row['РежимПотребления'] == 'Пищеприготовление при наличии ГВС':
-            param2 = '<span style="margin-left: 40px">Пищеприготовление при наличии ГВС</span><br>'
+            param2 = '<span style="margin-left: 40px">Пищеприготовление при наличии ГВС ('+row['Действует']+')</span><br>'
         if row['РежимПотребления'] == 'Пищеприготовление при отсутствии ЦГВС':
-            param3 = '<span style="margin-left: 40px">Пищеприготовление при отсутствии ЦГВС</span><br>'
+            param3 = '<span style="margin-left: 40px">Пищеприготовление при отсутствии ЦГВС ('+row['Действует']+')</span><br>'
         if row['РежимПотребления'] == 'Отопление жилых помещений':
-            param4 = '<span style="margin-left: 40px">Отопление жилых помещений</span><br>'
+            param4 = '<span style="margin-left: 40px">Отопление жилых помещений ('+row['Действует']+')</span><br>'
         if row['РежимПотребления'] == 'Подогрев воды':
-            param5 = '<span style="margin-left: 40px">Подогрев воды</span><br>'
+            param5 = '<span style="margin-left: 40px">Подогрев воды ('+row['Действует']+')</span><br>'
         
     abon_data = {'Regimes': uu+pu+param1+param2+param3+param4+param5}
 
