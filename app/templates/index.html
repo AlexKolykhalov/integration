@@ -141,9 +141,11 @@
                     console.log('bases_2', msg['data']);
                     console.log('---------------------------------------');                    
                     $.each(msg['data'], function (index, value) {                        
-                        if ($('#'+value).hasClass('list-group-item disabled')) {
+                        // if ($('#'+value).hasClass('list-group-item disabled')) {
+                        if ($('#'+value).hasClass('disabled')) {
                             $('#'+value)
-                                .removeClass('list-group-item disabled')
+                                // .removeClass('list-group-item disabled')
+                                .removeClass('disabled')
                                 .addClass('list-group-item list-group-item-success')
                                 .attr('href', "javascript:remove('"+value+"')");
                         }                                                
