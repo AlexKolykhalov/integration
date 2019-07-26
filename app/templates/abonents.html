@@ -2,68 +2,108 @@
 
 
 {% block app_content %}    
-    <h4><strong>Данные по абонентам {{ text }}</strong></h4>
-    <div class="form-group row">
-        <div class="col-xs-7">
-            <table id="table_6" class="table table-bordered table-hover" cellspacing="0" width="100%">
-                <thead>
-                    <tr>
-                        <th style="font-size: 13px;">Лицевой счет</th>
-                        <th style="font-size: 13px;">ФИО</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in data %}
-                        <tr>
-                            <td>{{ user['ЛС'] }}</td>
-                            <td>{{ user['ФИО'] }}</td>
-                            <td>{{ user['СостояниеЛС'] }}</td>
-                            <td>{{ user['СостояниеПодключения'] }}</td>
-                            <td>{{ user['ДатаОткрытияЗакрытия'] }}</td>
-                            <td>{{ user['ДатаПодключенияОтключения'] }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    {% if status == 1 %}
+        <div class="form-group row">
+            <div class="col-xs-4">                
+                <!-- <div class="input-group"> -->
+                    <input id="input_search" type="text" class="form-control" placeholder="Введите лицевой счет абонента">
+                    <!-- <div class="input-group-btn">
+                        <button class="btn btn-default" id="search">
+                            <i class="glyphicon glyphicon-search"></i>
+                        </button>
+                    </div> -->
+                <!-- </div>                 -->
+            </div>
         </div>
-        <div class="col-xs-5">
-            <div data-spy="affix" style="width: 27%">
+        <div class="form-group row">
+            <div class="col-xs-12">
                 <h4>Личные данные</h4>
-                <div class="col-xs-12">                
-                    <h5 id="passport"><br><br></h5>
-                </div>            
-                <!-- <h4>Взаиморасчеты</h4> -->
-                <h4>Установленное оборудование</h4>
-                <div class="col-xs-12">
-                    <span id="sch" hidden>
-                        <h5><strong>Счетчик</strong></h5>
-                        <h5 id="equipment_sch">----</h5>
-                    </span>
-                    <span id="otp" hidden>
-                        <h5><strong>Отопительное оборудование</strong></h5>
-                        <h5 id="equipment_otp">----</h5>
-                    </span>
-                    <span id="pg" hidden>
-                        <h5><strong>Плита газовая</strong></h5>
-                        <h5 id="equipment_pg">----</h5>
-                    </span>
-                    <span id="otp_pv" hidden>
-                        <h5><strong>Отопление + подогрев воды</strong></h5>
-                        <h5 id="equipment_otp_pv">----</h5>
-                    </span>
-                    <span id="cgv" hidden>
-                        <h5><strong>Центр. гор. водоснабжение</strong></h5>
-                        <h5 id="equipment_cgv">----</h5>
-                    </span>
-                    <span id="vnp" hidden>
-                        <h5><strong>Водонагревательные приборы</strong></h5>
-                        <h5 id="equipment_vnp">----</h5>
-                    </span>
+                <div class="col-xs-9">
+                    <h5 id="personaldata"></h5>
+                </div>
+                <div class="col-xs-3">
+                    <h5 id="status"></h5>
                 </div>
             </div>
-            <!-- если счетчик то добавляем данные -->
-        </div>        
-    </div>    
+        </div>
+        <div class="form-group row">
+            <div class="col-xs-7">
+                <h4>Режимы</h4>
+                <div class="col-xs-12">
+                    <h5 id="regimes"></h5>
+                </div>
+            </div>
+            <div class="col-xs-5">
+                <h4>Взаиморасчеты</h4>
+                <div class="col-xs-12">
+                    <h5 id="accounts"></h5>
+                </div>
+            </div>            
+        </div>
+        <div class="form-group row">                        
+            <div class="col-xs-7">
+                <h4>Оборудование</h4>
+                <div class="col-xs-12">
+                    <h5 id="equipments"></h5>
+                </div>
+            </div>
+            <div class="col-xs-5">
+                <h4>Параметры</h4>
+                <div class="col-xs-12">
+                    <h5 id="parameters"></h5>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <h4><strong>Данные по абонентам {{ text }}</strong></h4>
+        <div class="form-group row">
+            <div class="col-xs-7">
+                <table id="table_6" class="table table-bordered table-hover" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 13px;">Лицевой счет</th>
+                            <th style="font-size: 13px;">ФИО</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in data %}
+                            <tr>
+                                <td>{{ user['ЛС'] }}</td>
+                                <td>{{ user['ФИО'] }}</td>
+                                <td>{{ user['Адрес'] }}</td>
+                                <td>{{ user['СостояниеЛС'] }}</td>
+                                <td>{{ user['СостояниеПодключения'] }}</td>
+                                <td>{{ user['ДатаОткрытияЗакрытия'] }}</td>
+                                <td>{{ user['ДатаПодключенияОтключения'] }}</td>
+                                <td>{{ user['ВидДокумента'] }}</td>
+                                <td>{{ user['НомерДокумента'] }}</td>
+                                <td>{{ user['СерияДокумента'] }}</td>
+                                <td>{{ user['ДатаВыдачиДокумента'] }}</td>
+                                <td>{{ user['КемВыданДокумент'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-xs-5">
+                <div data-spy="affix" style="width: 27%">
+                    <h4>Личные данные</h4>
+                    <div class="col-xs-12">
+                        <h5 id="passport"><br><br></h5>
+                    </div>
+                    <!-- <h4>Взаиморасчеты</h4> -->
+                    <h4>Установленное оборудование</h4>
+                    <div class="col-xs-12">
+                        <span id="equipments" hidden>                            
+                            <h5 id="equipments">----</h5>
+                        </span>                        
+                    </div>
+                </div>
+                <!-- если счетчик то добавляем данные -->
+            </div>        
+        </div>
+    {% endif %}
+        
 {% endblock %}
 
 {% block app_scripts %}
@@ -75,7 +115,7 @@
             "processing": true,                        
             "columnDefs": [
                 {
-                    "targets": [ 2, 3, 4, 5 ],
+                    "targets": [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],
                     "visible": false
                 }
             ],
@@ -116,57 +156,60 @@
             }
             else {
                 var                    
-                    $sch            = $('#sch'),
-                    $otp            = $('#otp'),
-                    $pg             = $('#pg'),
-                    $otp_pv         = $('#otp_pv'),
-                    $cgv            = $('#cgv'),
-                    $vnp            = $('#vnp'),                    
+                    $equipments     = $('#equipments'),                    
                     _row            = $('#table_6').dataTable().fnGetData($(this));
                     _db             = location.pathname.substring(10, 13),
-                    _period_start   = location.pathname.substring(14, 24).replace('.2', '.4');                    
+                    _period_start   = location.pathname.substring(14, 24);                    
                 
                 table_6.$('tr.info').removeClass('info');
                 $(this).addClass('info');
                 
-                $sch.prop('hidden', true);
-                $otp.prop('hidden', true);
-                $pg.prop('hidden', true);
-                $otp_pv.prop('hidden', true);
-                $cgv.prop('hidden', true);
-                $vnp.prop('hidden', true);
+                $equipments.prop('hidden', true);                
 
                 $.post("{{ url_for('main.get_data_abonent')}}", {data: _db, ls: this.firstElementChild.innerText, period_start: _period_start})
-                    .done(function(response){                        
-                        $('#passport').html((_row[2] == 'off' ? 'Дата закрытия: ' : 'Дата открытия: ')+_row[4]+'<br>'+(_row[3] == 'Отключен' ? 'Дата отключения: ' : 'Дата подключения: ')+_row[5]+'<br><br>'+response.ЛичныеДанные);
-                        if (response.Счетчик != '') {
-                            $sch.prop('hidden', false);
-                            $('#equipment_sch').html(response.Счетчик);
-                        }
-                        if (response.ОтопительноеОборудование != '') {                            
-                            $otp.prop('hidden', false);
-                            $('#equipment_otp').html(response.ОтопительноеОборудование);
-                        }
-                        if (response.ПлитаГазовая != '') {                            
-                            $pg.prop('hidden', false);
-                            $('#equipment_pg').html(response.ПлитаГазовая);
-                        }
-                        if (response.ОтоплениеПодогрев != '') {                            
-                            $otp_pv.prop('hidden', false);
-                            $('#equipment_otp_pv').html(response.ОтоплениеПодогрев);
-                        }
-                        if (response.ЦентрГорВодоснабжение != '') {                            
-                            $cgv.prop('hidden', false);
-                            $('#equipment_cgv').html(response.ЦентрГорВодоснабжение);
-                        }
-                        if (response.ВодонагревательныеПриборы != '') {                            
-                            $vnp.prop('hidden', false);
-                            $('#equipment_vnp').html(response.ВодонагревательныеПриборы);
+                    .done(function(response){
+                        console.log(_row[7]);
+                        if (_row[7] != 'None') {
+                            var1 = ('<br><br>'+_row[7]+' ('+_row[9]+' '+_row[8]+')<br>'+_row[10]+' '+_row[11])    
+                        } else {
+                            var1 = ''
                         }                        
+                        $('#passport').html((_row[3] == 'off' ? 'Дата закрытия: ' : 'Дата открытия: ')+_row[5]+'<br>'+(_row[4] == 'Отключен' ? 'Дата отключения: ' : 'Дата подключения: ')+_row[6]+'<br><br>'+_row[2]+var1);
+                        $equipments.prop('hidden', false);
+                        $('#equipments').html(response.Equipments);                                          
                     })
                     .fail(function(response){console.log(response)})
             }
         });
+        
+        $('#input_search').on('keyup', function (e) {
+            if (e.keyCode == 13) {
+                // нужна предварительная валидация введенного ЛС            
+                $.post("{{ url_for('main.get_data_abonent')}}", {search: 1, ls: $('#input_search').val()})
+                    .done(function(response){
+                        $('#personaldata').html(response.PersonalData);
+                        $('#status').html(response.Status);
+                        $('#regimes').html(response.Regimes);
+                        $('#accounts').html(response.Accounts);
+                        $('#parameters').html(response.Parameters);
+                        $('#equipments').html(response.Equipments);                    
+                    })
+                    .fail(function(response){})
+            }            
+        });
 
+        // $('#search').click(function(){
+        //     // нужна предварительная валидация введенного ЛС            
+        //     $.post("{{ url_for('main.get_data_abonent')}}", {search: 1, ls: $('#input_search').val()})
+        //         .done(function(response){
+        //             $('#personaldata').html(response.PersonalData);
+        //             $('#status').html(response.Status);
+        //             $('#regimes').html(response.Regimes);
+        //             $('#accounts').html(response.Accounts);
+        //             $('#parameters').html(response.Parameters);
+        //             $('#equipments').html(response.Equipments);                    
+        //         })
+        //         .fail(function(response){})
+        // });
     </script>
 {% endblock %}
