@@ -412,29 +412,28 @@
                             var
                                 _Url,
                                 db = row[8],
-                                period     = $('#datetime_ab').val(),
-                                new_period = period.replace('.2', '.4');
+                                period     = $('#datetime_ab').val();                                
                                                         
                             if (meta.col == 2) {
                                 // открыт-подключен
-                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='on', podkl='podkl') }}";
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', status_ls='on', status_podkl='podkl') }}";
                             } else if (meta.col == 3) {
                                 // открыт-отключен
-                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='on', podkl='otkl') }}";
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', status_ls='on', status_podkl='otkl') }}";
                             } else if (meta.col == 4) {
                                 // открыт
-                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='on') }}";
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', status_ls='on') }}";
                             } else if (meta.col == 5) {
                                 // закрыт-подключен
-                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='off', podkl='podkl') }}";
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', status_ls='off', status_podkl='podkl') }}";
                             } else if (meta.col == 6) {
                                 // закрыт-отключен
-                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='off', podkl='otkl') }}";
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', status_ls='off', status_podkl='otkl') }}";
                             } else if (meta.col == 7) {
                                 // закрыт
-                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', ls='off') }}";
+                                _Url = "{{ url_for('main.abonents', db='replace', period_start='period_start', status_ls='off') }}";
                             }                            
-                            _Url_ = _Url.replace('/period_start/', '/'+new_period+'/').replace('/replace/', '/'+db+'/');
+                            _Url_ = _Url.replace('/period_start/', '/'+period+'/').replace('/replace/', '/'+db+'/');
                             return '<a href="'+_Url_+'">'+data+'</a>';
                         }
                     }
@@ -515,7 +514,7 @@
             var
                 total_summ = 0,
                 db         = $('#db').text(),
-                period     = $('#datetime_dz').val().replace('.2', '.4'),
+                period     = $('#datetime_dz').val(),
                 ajaxUrl    = "{{ url_for('main.get_data') }}";
             
             table_1.processing(true);
@@ -549,8 +548,8 @@
             var                 
                 total_summ   = 0,
                 db           = $('#db').text(),
-                period_start = $('#datetime_op_start').val().replace('.2', '.4'),
-                period_end   = $('#datetime_op_end').val().replace('.2', '.4'),                
+                period_start = $('#datetime_op_start').val(),
+                period_end   = $('#datetime_op_end').val(),
                 ajaxUrl      = "{{ url_for('main.get_data') }}";                                        
 
             table_2.processing(true);
@@ -606,8 +605,8 @@
                 total_summ_N    = 0, 
                 
                 db           = $('#db').text(),
-                period_start = $('#datetime_nach_start').val().replace('.2', '.4'),
-                period_end   = $('#datetime_nach_end').val().replace('.2', '.4'),                
+                period_start = $('#datetime_nach_start').val(),
+                period_end   = $('#datetime_nach_end').val(),
                 ajaxUrl      = "{{ url_for('main.get_data') }}";                      
                 
             table_3.processing(true);
@@ -698,7 +697,7 @@
                 total_zark       = 0,
                 
                 db      = $('#db').text()
-                period  = $('#datetime_ab').val().replace('.2', '.4'),                
+                period  = $('#datetime_ab').val(),
                 ajaxUrl = "{{ url_for('main.get_data') }}";
                             
             table_5.processing(true);
