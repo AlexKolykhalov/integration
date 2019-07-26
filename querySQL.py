@@ -396,7 +396,7 @@ sql_select5 = '''
  
                 SET NOCOUNT ON;
                     
-                DECLARE @P1 DATETIME, @P2 NVARCHAR(20), @P3 NVARCHAR(20), @P4 NVARCHAR(9)
+                DECLARE @P1 DATETIME, @P2 NVARCHAR(20), @P3 NVARCHAR(20), @P4 NVARCHAR(10)
 
                 SET		@P1 = DATEADD(year, 2000, %s) 
                 <доп переменная @P2>
