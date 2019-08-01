@@ -124,8 +124,10 @@ def admin(db):
                             'basename': redis_store.hmget(base, ['name'])[0],                             
                             'interval': redis_store.hmget(base, ['interval'])[0]                            
                             }
-                   
-        return render_template('settings.html', data=data)
+
+        users = [(key, redis_store.hgetall(key)['username'], redis_store.hgetall(key)['role']) for key in redis_store.hkeys('site_users')]
+
+        return render_template('settings.html', data=data, users=users)
     
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
@@ -524,27 +526,44 @@ def change():
 @bp.route('/save', methods=['post'])
 @login_required
 def save():
-    base = request.form['db']
-    try:
-        interval = int(request.form['interval'])
-        if interval < 10:
+    # сохранение интевала проверки
+    if 'db' in request.form:
+        base = request.form['db'] # например dbk 
+        try:
+            interval = int(request.form['interval'])
+            if interval < 10:
+                interval = '10'
+        except ValueError:
             interval = '10'
-    except ValueError:
-        interval = '10'
+            
+        redis_store.hmset(base, {'interval': interval})
+
+        return jsonify('')
+    else:    
+        # сохранение данных пользователя сайта
+        key      = request.form['key']
+        username = request.form['username']
+        role     = request.form['role']    
         
-    redis_store.hmset(base, {'interval': interval})
-    return jsonify('')
+        redis_store.hset(key, 'username', username)
+        redis_store.hset(key, 'role', role)
+        
+        return jsonify({'key': key, 'username': username, 'role': role})    
 
 # ajax
 @bp.route('/clean', methods=['post'])
 @login_required
 def clean():
-    base = request.form['db']    
-    for key in redis_store.hkeys('users'):
-        if key[-8:] == base:
-            redis_store.hdel('users', key)  # удаляет данные из таблицы users
-            redis_store.delete(key)         # удаляет подробную информацию о настройках пользователе в базе 1С
-    redis_store.hmset(base, {'period': '', 'PO': '', 'check_time': '', 'PNN': '', 'status': '0', 'cache': ''})
+    key = request.form['key']
+    redis_store.hdel('site_users', key)  # удаляем данные из таблицы site_users
+    redis_store.delete(key) # удаляем информацию о пользователе сайта    
+
+    # base = request.form['db']    
+    # for key in redis_store.hkeys('users'):
+    #     if key[-8:] == base:
+    #         redis_store.hdel('users', key)  # удаляет данные из таблицы users
+    #         redis_store.delete(key)         # удаляет подробную информацию о настройках пользователе в базе 1С
+    # redis_store.hmset(base, {'period': '', 'PO': '', 'check_time': '', 'PNN': '', 'status': '0', 'cache': ''})
     return jsonify('')
 
 # function
@@ -665,7 +684,7 @@ def get_regimes(result):
 
     return abon_data
 
-def get_accounts(result):    
+def get_accounts(result):
     s1 = Decimal('0.00')
     s2 = Decimal('0.00')
     s3 = Decimal('0.00')
