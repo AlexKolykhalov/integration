@@ -315,7 +315,7 @@
 
 {% block index_content %}
     <div class="container-fluid" style="margin-top:60px">
-        <div class="row">
+        <div class="row">            
             <div class="col-sm-2">
                 <ul class="nav nav-pills nav-stacked" data-spy="affix" style="width: 16%;">
                     <li>
@@ -331,33 +331,31 @@
                             <li class="divider"></li> 
                             <li><a href="{{ url_for('main.reports') }}">Массовые операции</a></li>                            
                         </ul>
-                    </li>
-                    <li class="dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Регламентные операции по закрытию периода <span class="caret"></span></a>
-                        <ul class="dropdown-menu dropdown-menu-right">                            
-                            <!-- <li {%if 'grz' in (g.bases_1_2)%} class="disabled"{% endif %}><a {%if not 'grz' in (g.bases_1_2)%} href="{{ url_for('main.manage', db='grz') }}" {% endif %}>Грязи</a></li>
-                            <li {%if 'dbk' in (g.bases_1_2)%} class="disabled"{% endif %}><a {%if not 'dbk' in (g.bases_1_2)%} href="{{ url_for('main.manage', db='dbk') }}" {% endif %}>Добринка</a></li>
-                            <li {%if 'lvt' in (g.bases_1_2)%} class="disabled"{% endif %}><a {%if not 'lvt' in (g.bases_1_2)%} href="{{ url_for('main.manage', db='lvt') }}" {% endif %}>Лев-толстой</a></li>                            
-                            <li {%if 'usm' in (g.bases_1_2)%} class="disabled"{% endif %}><a {%if not 'usm' in (g.bases_1_2)%} href="{{ url_for('main.manage', db='usm') }}" {% endif %}>Усмань</a></li> -->
-                            <li><a href="{{ url_for('main.manage', db='grz') }}">Грязи</a></li>
-                            <li><a href="{{ url_for('main.manage', db='dbk') }}">Добринка</a></li>
-                            <li><a href="{{ url_for('main.manage', db='lvt') }}">Лев-толстой</a></li>                            
-                            <li><a href="{{ url_for('main.manage', db='usm') }}">Усмань</a></li>
-                            <li class="divider"></li> 
-                            <li><a href="{{ url_for('main.manage') }}">Массовые операции</a></li>                            
-                        </ul>
-                    </li>
-                    <li class="dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown" href='#'>Администрирование баз 1С <span class="caret"></span></a>
-                        <ul class="dropdown-menu dropdown-menu-right">                            
-                            <li><a href="{{ url_for('main.admin', db='grz') }}">Грязи</a></li>
-                            <li><a href="{{ url_for('main.admin', db='dbk') }}">Добринка</a></li>
-                            <li><a href="{{ url_for('main.admin', db='lvt') }}">Лев-толстой</a></li>                            
-                            <li><a href="{{ url_for('main.admin', db='usm') }}">Усмань</a></li>
-                            <li class="divider"></li> 
-                            <li><a href="{{ url_for('main.admin') }}">Общие настройки</a></li> 
-                        </ul>
-                    </li>
+                    </li>                    
+                    {% if current_user.role == 'admin' %}
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">Регламентные операции по закрытию периода <span class="caret"></span></a>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li><a href="{{ url_for('main.manage', db='grz') }}">Грязи</a></li>
+                                <li><a href="{{ url_for('main.manage', db='dbk') }}">Добринка</a></li>
+                                <li><a href="{{ url_for('main.manage', db='lvt') }}">Лев-толстой</a></li>
+                                <li><a href="{{ url_for('main.manage', db='usm') }}">Усмань</a></li>
+                                <li class="divider"></li>
+                                <li><a href="{{ url_for('main.manage') }}">Массовые операции</a></li>                        
+                            </ul>
+                        </li>
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" data-toggle="dropdown" href='#'>Администрирование баз 1С <span class="caret"></span></a>
+                            <ul class="dropdown-menu dropdown-menu-right">                            
+                                <li><a href="{{ url_for('main.admin', db='grz') }}">Грязи</a></li>
+                                <li><a href="{{ url_for('main.admin', db='dbk') }}">Добринка</a></li>
+                                <li><a href="{{ url_for('main.admin', db='lvt') }}">Лев-толстой</a></li>                            
+                                <li><a href="{{ url_for('main.admin', db='usm') }}">Усмань</a></li>
+                                <li class="divider"></li> 
+                                <li><a href="{{ url_for('main.admin') }}">Общие настройки</a></li> 
+                            </ul>
+                        </li>
+                    {% endif %}
                     <li><div class="invisible"><div class="well well-lg">Basic Well</div></div></li>
                     <li><div class="invisible"><div class="well well-lg">Basic Well</div></div></li>
                     <!-- <li>
@@ -376,28 +374,40 @@
                 </ul>                
             </div>            
             <div id="col" class="col-sm-8">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}                            
+                            <div class="alert alert-info alert-dismissible fade in" role="alert">
+                                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                                {{ message }}
+                            </div>
+                        {% endfor %}        
+                    {% endif %}
+                {% endwith %}
                 {% block app_content %}
                 {% endblock %}                
             </div>
-            <div class="col-sm-2">
-                <div class="panel panel-info" data-spy="affix" style="width: inherit;">
-                    <div class="panel-heading">Текущие расчеты</div>
-                    <div class="panel-body">
-                        <ul class="list-group" id="list-group_count">                            
-                            <!-- рабочие -->
-                            <a id="grz_work" data-toggle="tooltip" data-placement="left" title={% if 'grz_work' in g.statuses %} "{{ g.statuses.get('grz_work') }}" {% else %} "grz_work_error" {% endif %} {% if 'grz_work' in g.bases_2 %} href="javascript:remove('grz_work')" class="list-group-item list-group-item-success" {% elif 'grz_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Грязи</strong></a>
-                            <a id="dbk_work" data-toggle="tooltip" data-placement="left" title={% if 'dbk_work' in g.statuses %} "{{ g.statuses.get('dbk_work') }}" {% else %} "dbk_work_error" {% endif %} {% if 'dbk_work' in g.bases_2 %} href="javascript:remove('dbk_work')" class="list-group-item list-group-item-success" {% elif 'dbk_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Добринка</strong></a>
-                            <a id="lvt_work" data-toggle="tooltip" data-placement="left" title={% if 'lvt_work' in g.statuses %} "{{ g.statuses.get('lvt_work') }}" {% else %} "lvt_work_error" {% endif %} {% if 'lvt_work' in g.bases_2 %} href="javascript:remove('lvt_work')" class="list-group-item list-group-item-success" {% elif 'lvt_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Лев-толстой</strong></a>
-                            <a id="usm_work" data-toggle="tooltip" data-placement="left" title={% if 'usm_work' in g.statuses %} "{{ g.statuses.get('usm_work') }}" {% else %} "usm_work_error" {% endif %} {% if 'usm_work' in g.bases_2 %} href="javascript:remove('usm_work')" class="list-group-item list-group-item-success" {% elif 'usm_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Усмань</strong></a>
-                            <!-- тестовые -->
-                            <a id="grz_test" data-toggle="tooltip" data-placement="left" title={% if 'grz_test' in g.statuses %} "{{ g.statuses.get('grz_test') }}" {% else %} "grz_test_error" {% endif %} {% if 'grz_test' in g.bases_2 %} href="javascript:remove('grz_test')" class="list-group-item list-group-item-success" {% elif 'grz_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Грязи</a>
-                            <a id="dbk_test" data-toggle="tooltip" data-placement="left" title={% if 'dbk_test' in g.statuses %} "{{ g.statuses.get('dbk_test') }}" {% else %} "dbk_test_error" {% endif %} {% if 'dbk_test' in g.bases_2 %} href="javascript:remove('dbk_test')" class="list-group-item list-group-item-success" {% elif 'dbk_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Добринка</a>
-                            <a id="lvt_test" data-toggle="tooltip" data-placement="left" title={% if 'lvt_test' in g.statuses %} "{{ g.statuses.get('lvt_test') }}" {% else %} "lvt_test_error" {% endif %} {% if 'lvt_test' in g.bases_2 %} href="javascript:remove('lvt_test')" class="list-group-item list-group-item-success" {% elif 'lvt_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Лев-толстой</a>
-                            <a id="usm_test" data-toggle="tooltip" data-placement="left" title={% if 'usm_test' in g.statuses %} "{{ g.statuses.get('usm_test') }}" {% else %} "usm_test_error" {% endif %} {% if 'usm_test' in g.bases_2 %} href="javascript:remove('usm_test')" class="list-group-item list-group-item-success" {% elif 'usm_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Усмань</a>
-                        </ul>
+            <div class="col-sm-2">                
+                {% if current_user.role == 'admin' %}
+                    <div class="panel panel-info" data-spy="affix" style="width: inherit;">
+                        <div class="panel-heading">Текущие расчеты</div>
+                        <div class="panel-body">
+                            <ul class="list-group" id="list-group_count">
+                                <!-- рабочие -->
+                                <a id="grz_work" data-toggle="tooltip" data-placement="left" title={% if 'grz_work' in g.statuses %} "{{ g.statuses.get('grz_work') }}" {% else %} "grz_work_error" {% endif %} {% if 'grz_work' in g.bases_2 %} href="javascript:remove('grz_work')" class="list-group-item list-group-item-success" {% elif 'grz_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Грязи</strong></a>
+                                <a id="dbk_work" data-toggle="tooltip" data-placement="left" title={% if 'dbk_work' in g.statuses %} "{{ g.statuses.get('dbk_work') }}" {% else %} "dbk_work_error" {% endif %} {% if 'dbk_work' in g.bases_2 %} href="javascript:remove('dbk_work')" class="list-group-item list-group-item-success" {% elif 'dbk_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Добринка</strong></a>
+                                <a id="lvt_work" data-toggle="tooltip" data-placement="left" title={% if 'lvt_work' in g.statuses %} "{{ g.statuses.get('lvt_work') }}" {% else %} "lvt_work_error" {% endif %} {% if 'lvt_work' in g.bases_2 %} href="javascript:remove('lvt_work')" class="list-group-item list-group-item-success" {% elif 'lvt_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Лев-толстой</strong></a>
+                                <a id="usm_work" data-toggle="tooltip" data-placement="left" title={% if 'usm_work' in g.statuses %} "{{ g.statuses.get('usm_work') }}" {% else %} "usm_work_error" {% endif %} {% if 'usm_work' in g.bases_2 %} href="javascript:remove('usm_work')" class="list-group-item list-group-item-success" {% elif 'usm_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Усмань</strong></a>
+                                <!-- тестовые -->
+                                <a id="grz_test" data-toggle="tooltip" data-placement="left" title={% if 'grz_test' in g.statuses %} "{{ g.statuses.get('grz_test') }}" {% else %} "grz_test_error" {% endif %} {% if 'grz_test' in g.bases_2 %} href="javascript:remove('grz_test')" class="list-group-item list-group-item-success" {% elif 'grz_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Грязи</a>
+                                <a id="dbk_test" data-toggle="tooltip" data-placement="left" title={% if 'dbk_test' in g.statuses %} "{{ g.statuses.get('dbk_test') }}" {% else %} "dbk_test_error" {% endif %} {% if 'dbk_test' in g.bases_2 %} href="javascript:remove('dbk_test')" class="list-group-item list-group-item-success" {% elif 'dbk_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Добринка</a>
+                                <a id="lvt_test" data-toggle="tooltip" data-placement="left" title={% if 'lvt_test' in g.statuses %} "{{ g.statuses.get('lvt_test') }}" {% else %} "lvt_test_error" {% endif %} {% if 'lvt_test' in g.bases_2 %} href="javascript:remove('lvt_test')" class="list-group-item list-group-item-success" {% elif 'lvt_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Лев-толстой</a>
+                                <a id="usm_test" data-toggle="tooltip" data-placement="left" title={% if 'usm_test' in g.statuses %} "{{ g.statuses.get('usm_test') }}" {% else %} "usm_test_error" {% endif %} {% if 'usm_test' in g.bases_2 %} href="javascript:remove('usm_test')" class="list-group-item list-group-item-success" {% elif 'usm_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Усмань</a>
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            </div>            
+                {% endif %}
+            </div>
         </div>
     </div>
 {% endblock %}
