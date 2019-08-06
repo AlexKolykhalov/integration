@@ -43,272 +43,282 @@
             });            
         }
         
-        $(document).ready(function() {
-            // Use a "/test" namespace.
-            // An application can open a connection on multiple namespaces, and
-            // Socket.IO will multiplex all those connections on a single
-            // physical channel. If you don't care about multiple channels, you
-            // can set the namespace to an empty string.
-            namespace = '/test';
-            // Connect to the Socket.IO server.
-            // The connection URL has the following format:
-            //     http[s]://<domain>:<port>[/<namespace>]
-            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-            // Event handler for new connections.
-            // The callback function is invoked when a connection with the
-            // server is established.
-            socket.on('connect', function() {                
-                socket.emit('');
-            });
+        $(document).ready(function() {            
+            $.get('{{ url_for("main.check_user_role")}}') //если роль "admin", то подключаем сокеты
+                .done(function(response){
+                    if (response) {
+                        //console.log('exit');
+                               
+                        // Use a "/test" namespace.
+                        // An application can open a connection on multiple namespaces, and
+                        // Socket.IO will multiplex all those connections on a single
+                        // physical channel. If you don't care about multiple channels, you
+                        // can set the namespace to an empty string.
+                        namespace = '/test';
+                        // Connect to the Socket.IO server.
+                        // The connection URL has the following format:
+                        //     http[s]://<domain>:<port>[/<namespace>]
+                        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+                        // Event handler for new connections.
+                        // The callback function is invoked when a connection with the
+                        // server is established.
                         
-            socket.on('response', function(msg) {
-                console.log(msg);                
-            });
-          
-            //****************
-            //server response
-            //****************
-            socket.on('server_response', function(msg) {                
-                //if push button 
-                if (msg['info'] == 'button') {                                        
-                    if (msg['procedure'] == 'change_period') {
-                        console.log('SERVER RESPONSE #btn_change_period', msg['data']);
-                        console.log('---------------------------------------');                                                
-                        if ( $('#list_change_period').hasClass('invisible') ) {                            
-                            get_info(msg['data'][0], 'change_period')
-                                .then( 
-                                    function(result) {                                    
-                                        $('#manage_title_'+msg['data'][0]).html('<strong>'+result+'</strong>');
-                                        $('#tab_2_'+msg['data'][0]).removeClass('invisible'); //видимость вкладки Расчет начислений
-                                        // show_alert('alert-success', 'Выполнено успешно');            
-                                    },
-                                    function(result) {
-                                        $('#manage_title_'+msg['data'][0]).html('<strong>'+result+'</strong>');
-                                        // show_alert('alert-danger', 'Выполнено с ошибкой');
+                        // sessionStorage.setItem('socket', socket);
+
+                        socket.on('connect', function() {                            
+                            socket.emit('');
+                        });
+                                    
+                        socket.on('response', function(msg) {
+                            console.log(msg);
+                        });
+                    
+                        //****************
+                        //server response
+                        //****************
+                        socket.on('server_response', function(msg) {
+                            //if push button 
+                            if (msg['info'] == 'button') {                                        
+                                if (msg['procedure'] == 'change_period') {
+                                    console.log('SERVER RESPONSE #btn_change_period', msg['data']);
+                                    console.log('---------------------------------------');                                                
+                                    if ( $('#list_change_period').hasClass('invisible') ) {                            
+                                        get_info(msg['data'][0], 'change_period')
+                                            .then( 
+                                                function(result) {                                    
+                                                    $('#manage_title_'+msg['data'][0]).html('<strong>'+result+'</strong>');
+                                                    $('#tab_2_'+msg['data'][0]).removeClass('invisible'); //видимость вкладки Расчет начислений
+                                                    // show_alert('alert-success', 'Выполнено успешно');            
+                                                },
+                                                function(result) {
+                                                    $('#manage_title_'+msg['data'][0]).html('<strong>'+result+'</strong>');
+                                                    // show_alert('alert-danger', 'Выполнено с ошибкой');
+                                                }
+                                            );                            
+                                    } else {
+                                        $.each(msg['data'], function (index, value) {
+                                            $('#input_change_period_'+value).prop('checked', false);
+                                            $('#input_start_count_'+value).prop('disabled', false);
+                                        });
+                                        // show_alert('alert-success', 'Выполнено успешно');
                                     }
-                                );                            
-                        } else {
-                            $.each(msg['data'], function (index, value) {
-                                $('#input_change_period_'+value).prop('checked', false);
-                                $('#input_start_count_'+value).prop('disabled', false);
-                            });
-                            // show_alert('alert-success', 'Выполнено успешно');
-                        }
-                        $('#btn_change_period').removeClass('disabled');///!!!!!!!!!!!!!
-                    } else if (msg['procedure'] == 'start_counting') {
-                        console.log('SERVER RESPONSE #btn_start_count', msg['data']);
-                        console.log('---------------------------------------');
-                        $.each(msg['data'], function (index, value) {                            
-                            get_info(value, 'start_count')
-                                .then( 
-                                    function(result) {$('#'+value).css('display', 'block').attr('data-original-title', result);},
-                                    function(result) {$('#'+value).css('display', 'block').attr('data-original-title', 'server error');}
-                                );
-                            $('#input_change_period_'+value).prop('disabled', true).prop('checked', false);
-                            $('#input_start_count_'+value).prop('disabled', true).prop('checked', false);
-                        });
-                    } else {                        
-                        show_alert('alert-danger', 'Ошибка связи с базой 1С: '+msg['data'], true);
-                        $('#btn_change_period').removeClass('disabled');///!!!!!!!!!!!!!                        
-                    }
-                } 
-                //if push bandge
-                if (msg['info'] == 'bandge') {
-                    console.log(msg['info'], msg['data']);
-                    console.log('SERVER RESPONSE #push bandge', msg['data']);
-                    console.log('---------------------------------------');
-                    $('#'+msg['data'])
-                        .css('display', 'none')
-                        .attr('data-original-title', msg['data'])
-                        .removeAttr('href')
-                        .removeClass('list-group-item list-group-item-success')
-                        .addClass('list-group-item disabled');
-                    $('#input_change_period_'+msg['data']).prop('disabled', false);
-                    $('#input_start_count_'+msg['data']).prop('disabled', false);
-                }
-                //if clean cache
-                if (msg['info'] == 'cache') {
-                    console.log(msg['info'], msg['data']);
-                    console.log('SERVER RESPONSE #clean cache', msg['data']);
-                    console.log('---------------------------------------');
-                    $('#manage_title_'+msg['data']).html('<strong>Установите период!</strong>');
-                    $('#tab_2_'+msg['data']).addClass('invisible');
-                    $('#input_start_count_'+msg['data']).prop('disabled', true).prop('checked', false);                    
-                }                    
-                //if get response from server
-                if (msg['info'] == 'server') {                    
-                    console.log('Timer ID:'+_timer, msg['info']);
-                    console.log('bases_2', msg['data']);
-                    console.log('---------------------------------------');                    
-                    $.each(msg['data'], function (index, value) {                        
-                        // if ($('#'+value).hasClass('list-group-item disabled')) {
-                        if ($('#'+value).hasClass('disabled')) {
-                            $('#'+value)
-                                // .removeClass('list-group-item disabled')
-                                .removeClass('disabled')
-                                .addClass('list-group-item list-group-item-success')
-                                .attr('href', "javascript:remove('"+value+"')");
-                        }                                                
-                    });
-                }                
-            });
-
-            //**************
-            //client request
-            //**************            
-            _timer = setTimeout(function recursion() {                
-                socket.emit('check_complite_base');
-                setTimeout(recursion, 1000*30);
-            }, 1000*30);
-            
-            //popover
-            $('[data-toggle="tooltip"]').tooltip();
-            $('[data-toggle="tooltip"]').hover( 
-                function() {
-                    var $this = $(this);
-                    get_info($this.attr('id'), 'hover')
-                        .then( 
-                            function(result) {$this.attr('data-original-title', result);},
-                            function(result) {$this.attr('data-original-title', 'server error');},
-                        );                    
-                },    
-                function() {}
-            );
-            
-            //change mode
-            $('#switch_option_mode').click(function() {
-                var
-                    $this   = $(this);
-                    _operating_mode = 'test';
-                if ($this.is(':checked')) {
-                    _operating_mode = 'work';
-                }                
-                change_mode(_operating_mode)
-                        .then( 
-                            function(result) {location.reload();},
-                            function(result) {},
-                        );                
-            })
-
-            // clean cache
-            $('#list-group_cache input:checkbox').click(function() {
-                var
-                    $this = $(this);                    
-                
-                if ($this.is(':checked')) {
-                    _str            = $this.attr('id');
-                    _operating_mode = $('#switch_option_mode').is(':checked') ? 'work' : 'test';
-                    _db             = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
-                    
-                    socket.emit('clean_cache', {BASE: _db});                    
-                }                
-            })
-
-            // change period
-            $('#btn_change_period').click(function() {
-                if ( !$(this).hasClass('disabled') ) {
-                    
-                    if ($('#datetime_change_period').val() == '') {
-                        // show_alert('alert-danger', 'Не заполнена дата запрета редактирования!');
-                        $('#wrn_change_period').text('Не заполнена дата запрета редактирования!'). show();
-                        return false;    
-                    }
-
-                    $('#wrn_change_period').hide();
-
-                    var 
-                        _bases          = [],
-                        _str            = location.pathname,
-                        _time           = $('#datetime_change_period').val(),
-                        _checked        = $('#input_PO').is(':checked'),                        
-                        _operating_mode = $('#switch_option_mode').is(':checked') ? 'work' : 'test',
-                        _res            = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
-
-                    if ($('#list_change_period').hasClass('invisible')) {                        
-                        _bases.push(_res);
-                        $.post("{{url_for('main.check')}}", {data: _res})
-                            .done(function(response){                                
-                                if (response == 'ok') {                                    
-                                    console.log('CLIENT REQUEST push #btn_change_period', _bases, _time, _checked);                                    
-                                    $('#btn_change_period').addClass('disabled');
-                                    socket.emit('change_period', {BASES: _bases, TIME: _time, CHECKED: _checked});                                                                        
-                                } else {
-                                    show_alert('alert-danger', response);                                    
-                                }                                
-                            })
-                    } else {
-                        $('#list_change_period input:checkbox:checked').each(function() {                            
-                            _bases.push($(this).val());
-                        });
-                        if (_bases.length == 0) {
-                            // show_alert('alert-danger', 'Список баз пуст!');
-                            $('#wrn_change_period').text('Список баз пуст!').show()
-                        } else {
-                            console.log('CLIENT REQUEST push #btn_change_period', _bases, _time, _checked);
-                            $(this).addClass('disabled');
-                            socket.emit('change_period', {BASES: _bases, TIME: _time, CHECKED: _checked});                            
-                        }                        
-                    }                    
-                }
-            });
-
-            // count
-            $('#btn_start_count').click(function() {                                
-                if ( !$(this).hasClass('disabled') ) {                    
-
-                    var 
-                        _bases          = [],
-                        _str            = location.pathname,                        
-                        _checked        = $('#input_PNN').is(':checked'),
-                        _operating_mode = $('#switch_option_mode').is(':checked') ? 'work' : 'test',
-                        _res            = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
-
-                    if ($('#manage_title_'+_res).text() == 'Установите период!') {
-                        // show_alert('alert-danger', 'Установите период расчета!');
-                        $('#wrn_start_count').text('Установите период расчета!').show();
-                        return false;    
-                    }
-
-                    $('#wrn_start_count').hide();
-
-                    if ($('#list_count').hasClass('invisible')) {                        
-                        _bases.push(_res);
-                        $.post("{{url_for('main.check')}}", {data: _res})
-                            .done(function(response){
-                                if (response == 'ok') {
-                                    console.log('CLIENT REQUEST push #btn_start_count', _bases, _checked);
-                                    socket.emit('start_counting', {BASES: _bases, CHECKED: _checked});
-                                } else {
-                                    show_alert('alert-danger', response);
+                                    $('#btn_change_period').removeClass('disabled');///!!!!!!!!!!!!!
+                                } else if (msg['procedure'] == 'start_counting') {
+                                    console.log('SERVER RESPONSE #btn_start_count', msg['data']);
+                                    console.log('---------------------------------------');
+                                    $.each(msg['data'], function (index, value) {                            
+                                        get_info(value, 'start_count')
+                                            .then( 
+                                                function(result) {$('#'+value).css('display', 'block').attr('data-original-title', result);},
+                                                function(result) {$('#'+value).css('display', 'block').attr('data-original-title', 'server error');}
+                                            );
+                                        $('#input_change_period_'+value).prop('disabled', true).prop('checked', false);
+                                        $('#input_start_count_'+value).prop('disabled', true).prop('checked', false);
+                                    });
+                                } else {                        
+                                    show_alert('alert-danger', 'Ошибка связи с базой 1С: '+msg['data'], true);
+                                    $('#btn_change_period').removeClass('disabled');///!!!!!!!!!!!!!                        
                                 }
-                            })
-                    } else {
-                        $('#list_count input:checkbox:checked').each(function() {                            
-                            _bases.push($(this).val());                            
+                            } 
+                            //if push bandge
+                            if (msg['info'] == 'bandge') {
+                                console.log(msg['info'], msg['data']);
+                                console.log('SERVER RESPONSE #push bandge', msg['data']);
+                                console.log('---------------------------------------');
+                                $('#'+msg['data'])
+                                    .css('display', 'none')
+                                    .attr('data-original-title', msg['data'])
+                                    .removeAttr('href')
+                                    .removeClass('list-group-item list-group-item-success')
+                                    .addClass('list-group-item disabled');
+                                $('#input_change_period_'+msg['data']).prop('disabled', false);
+                                $('#input_start_count_'+msg['data']).prop('disabled', false);
+                            }
+                            //if clean cache
+                            if (msg['info'] == 'cache') {
+                                console.log(msg['info'], msg['data']);
+                                console.log('SERVER RESPONSE #clean cache', msg['data']);
+                                console.log('---------------------------------------');
+                                $('#manage_title_'+msg['data']).html('<strong>Установите период!</strong>');
+                                $('#tab_2_'+msg['data']).addClass('invisible');
+                                $('#input_start_count_'+msg['data']).prop('disabled', true).prop('checked', false);                    
+                            }                    
+                            //if get response from server
+                            if (msg['info'] == 'server') {                    
+                                console.log('Timer ID:'+_timer, msg['info']);
+                                console.log('bases_2', msg['data']);
+                                console.log('---------------------------------------');                    
+                                $.each(msg['data'], function (index, value) {                        
+                                    // if ($('#'+value).hasClass('list-group-item disabled')) {
+                                    if ($('#'+value).hasClass('disabled')) {
+                                        $('#'+value)
+                                            // .removeClass('list-group-item disabled')
+                                            .removeClass('disabled')
+                                            .addClass('list-group-item list-group-item-success')
+                                            .attr('href', "javascript:remove('"+value+"')");
+                                    }                                                
+                                });
+                            }                
                         });
-                        if (_bases.length == 0) {
-                            // show_alert('alert-danger', 'Список баз пуст!');
-                            $('#wrn_start_count').text('Список баз пуст!').show();                            
-                        } else {
-                            console.log('CLIENT REQUEST push #btn_start_count', _bases, _checked);
-                            socket.emit('start_counting', {BASES: _bases, CHECKED: _checked});
-                        }                        
+
+                        //**************
+                        //client request
+                        //**************            
+                        _timer = setTimeout(function recursion() {
+                            socket.emit('check_complite_base');
+                            setTimeout(recursion, 1000*30);
+                        }, 1000*30);
+                        
+                        //popover
+                        $('[data-toggle="tooltip"]').tooltip();
+                        $('[data-toggle="tooltip"]').hover( 
+                            function() {
+                                var $this = $(this);
+                                get_info($this.attr('id'), 'hover')
+                                    .then( 
+                                        function(result) {$this.attr('data-original-title', result);},
+                                        function(result) {$this.attr('data-original-title', 'server error');},
+                                    );                    
+                            },    
+                            function() {}
+                        );
+                        
+                        //change mode
+                        $('#switch_option_mode').click(function() {
+                            var
+                                $this   = $(this);
+                                _operating_mode = 'test';
+                            if ($this.is(':checked')) {
+                                _operating_mode = 'work';
+                            }                
+                            change_mode(_operating_mode)
+                                    .then( 
+                                        function(result) {location.reload();},
+                                        function(result) {},
+                                    );                
+                        })
+
+                        // clean cache
+                        $('#list-group_cache input:checkbox').click(function() {
+                            var
+                                $this = $(this);                    
+                            
+                            if ($this.is(':checked')) {
+                                _str            = $this.attr('id');
+                                _operating_mode = $('#switch_option_mode').is(':checked') ? 'work' : 'test';
+                                _db             = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
+                                
+                                socket.emit('clean_cache', {BASE: _db});                    
+                            }                
+                        })
+
+                        // change period
+                        $('#btn_change_period').click(function() {
+                            if ( !$(this).hasClass('disabled') ) {
+                                
+                                if ($('#datetime_change_period').val() == '') {
+                                    // show_alert('alert-danger', 'Не заполнена дата запрета редактирования!');
+                                    $('#wrn_change_period').text('Не заполнена дата запрета редактирования!'). show();
+                                    return false;    
+                                }
+
+                                $('#wrn_change_period').hide();
+
+                                var 
+                                    _bases          = [],
+                                    _str            = location.pathname,
+                                    _time           = $('#datetime_change_period').val(),
+                                    _checked        = $('#input_PO').is(':checked'),                        
+                                    _operating_mode = $('#switch_option_mode').is(':checked') ? 'work' : 'test',
+                                    _res            = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
+
+                                if ($('#list_change_period').hasClass('invisible')) {                        
+                                    _bases.push(_res);
+                                    $.post("{{url_for('main.check')}}", {data: _res})
+                                        .done(function(response){                                
+                                            if (response == 'ok') {                                    
+                                                console.log('CLIENT REQUEST push #btn_change_period', _bases, _time, _checked);                                    
+                                                $('#btn_change_period').addClass('disabled');
+                                                socket.emit('change_period', {BASES: _bases, TIME: _time, CHECKED: _checked});                                                                        
+                                            } else {
+                                                show_alert('alert-danger', response);                                    
+                                            }                                
+                                        })
+                                } else {
+                                    $('#list_change_period input:checkbox:checked').each(function() {                            
+                                        _bases.push($(this).val());
+                                    });
+                                    if (_bases.length == 0) {
+                                        // show_alert('alert-danger', 'Список баз пуст!');
+                                        $('#wrn_change_period').text('Список баз пуст!').show()
+                                    } else {
+                                        console.log('CLIENT REQUEST push #btn_change_period', _bases, _time, _checked);
+                                        $(this).addClass('disabled');
+                                        socket.emit('change_period', {BASES: _bases, TIME: _time, CHECKED: _checked});                            
+                                    }                        
+                                }                    
+                            }
+                        });
+
+                        // count
+                        $('#btn_start_count').click(function() {
+                            if ( !$(this).hasClass('disabled') ) {                    
+
+                                var 
+                                    _bases          = [],
+                                    _str            = location.pathname,                        
+                                    _checked        = $('#input_PNN').is(':checked'),
+                                    _operating_mode = $('#switch_option_mode').is(':checked') ? 'work' : 'test',
+                                    _res            = _str.substring(_str.length-3, _str.length)+'_'+_operating_mode;
+
+                                if ($('#manage_title_'+_res).text() == 'Установите период!') {
+                                    // show_alert('alert-danger', 'Установите период расчета!');
+                                    $('#wrn_start_count').text('Установите период расчета!').show();
+                                    return false;    
+                                }
+
+                                $('#wrn_start_count').hide();
+
+                                if ($('#list_count').hasClass('invisible')) {                        
+                                    _bases.push(_res);
+                                    $.post("{{url_for('main.check')}}", {data: _res})
+                                        .done(function(response){
+                                            if (response == 'ok') {
+                                                console.log('CLIENT REQUEST push #btn_start_count', _bases, _checked);
+                                                socket.emit('start_counting', {BASES: _bases, CHECKED: _checked});
+                                            } else {
+                                                show_alert('alert-danger', response);
+                                            }
+                                        })
+                                } else {
+                                    $('#list_count input:checkbox:checked').each(function() {                            
+                                        _bases.push($(this).val());                            
+                                    });
+                                    if (_bases.length == 0) {
+                                        // show_alert('alert-danger', 'Список баз пуст!');
+                                        $('#wrn_start_count').text('Список баз пуст!').show();                            
+                                    } else {
+                                        console.log('CLIENT REQUEST push #btn_start_count', _bases, _checked);
+                                        socket.emit('start_counting', {BASES: _bases, CHECKED: _checked});
+                                    }                        
+                                }
+                            }                
+                        });            
+                        
+                        //push bandge
+                        $('#list-group_count a').click( function() {
+                            var
+                                $this = $(this);
+                            if ( !$this.hasClass('disabled') ) {
+                                console.log('CLIENT REQUEST push #bange', $this.attr('id'));
+                                if ($this.hasClass('list-group-item list-group-item-success')) {
+                                    //$this.removeAttr('href');
+                                    socket.emit('remove_base', {BASE: $this.attr('id')});
+                                }
+                            }
+                        });
                     }
-                }                
-            });            
-            
-            //push bandge
-            $('#list-group_count a').click( function() {
-                var
-                    $this = $(this);
-                if ( !$this.hasClass('disabled') ) {
-                    console.log('CLIENT REQUEST push #bange', $this.attr('id'));                    
-                    if ($this.hasClass('list-group-item list-group-item-success')) {
-                        //$this.removeAttr('href');
-                        socket.emit('remove_base', {BASE: $this.attr('id')});                    
-                    }            
-                }                                
-            });                       
+                }); 
         });
     </script>
 {% endblock %}
@@ -323,34 +333,76 @@
                     </li>
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Консолидированная отчетность <span class="caret"></span></a>
-                        <ul class="dropdown-menu dropdown-menu-right">                            
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li><a href="{{ url_for('main.reports', db='bor') }}">Борино</a></li>
+                            <li><a href="{{ url_for('main.reports', db='vol') }}">Волово</a></li>
                             <li><a href="{{ url_for('main.reports', db='grz') }}">Грязи</a></li>
+                            <li><a href="{{ url_for('main.reports', db='dan') }}">Данков</a></li>
                             <li><a href="{{ url_for('main.reports', db='dbk') }}">Добринка</a></li>
-                            <li><a href="{{ url_for('main.reports', db='lvt') }}">Лев-толстой</a></li>                            
+                            <li><a href="{{ url_for('main.reports', db='dbr') }}">Доброе</a></li>
+                            <li><a href="{{ url_for('main.reports', db='dlk') }}">Долгоруково</a></li>
+                            <li><a href="{{ url_for('main.reports', db='elc') }}">Елец</a></li>
+                            <li><a href="{{ url_for('main.reports', db='zdn') }}">Задонск</a></li>
+                            <li><a href="{{ url_for('main.reports', db='izm') }}">Измалково</a></li>
+                            <li><a href="{{ url_for('main.reports', db='krs') }}">Красное</a></li>
+                            <li><a href="{{ url_for('main.reports', db='lbd') }}">Лебедянь</a></li>
+                            <li><a href="{{ url_for('main.reports', db='lvt') }}">Лев Толстой</a></li>
+                            <li><a href="{{ url_for('main.reports', db='stn') }}">Становое</a></li>
+                            <li><a href="{{ url_for('main.reports', db='trb') }}">Тербуны</a></li>
                             <li><a href="{{ url_for('main.reports', db='usm') }}">Усмань</a></li>
-                            <li class="divider"></li> 
-                            <li><a href="{{ url_for('main.reports') }}">Массовые операции</a></li>                            
+                            <li><a href="{{ url_for('main.reports', db='hlv') }}">Хлевное</a></li>
+                            <li><a href="{{ url_for('main.reports', db='cha') }}">Чаплыгин</a></li>
+                            <li class="divider"></li>
+                            <li><a href="{{ url_for('main.reports') }}">Массовые операции</a></li>
                         </ul>
                     </li>                    
                     {% if current_user.role == 'admin' %}
                         <li class="dropdown">
                             <a class="dropdown-toggle" data-toggle="dropdown" href="#">Регламентные операции по закрытию периода <span class="caret"></span></a>
                             <ul class="dropdown-menu dropdown-menu-right">
+                                <li><a href="{{ url_for('main.manage', db='bor') }}">Борино</a></li>
+                                <li><a href="{{ url_for('main.manage', db='vol') }}">Волово</a></li>
                                 <li><a href="{{ url_for('main.manage', db='grz') }}">Грязи</a></li>
+                                <li><a href="{{ url_for('main.manage', db='dan') }}">Данков</a></li>
                                 <li><a href="{{ url_for('main.manage', db='dbk') }}">Добринка</a></li>
-                                <li><a href="{{ url_for('main.manage', db='lvt') }}">Лев-толстой</a></li>
+                                <li><a href="{{ url_for('main.manage', db='dbr') }}">Доброе</a></li>
+                                <li><a href="{{ url_for('main.manage', db='dlk') }}">Долгоруково</a></li>
+                                <li><a href="{{ url_for('main.manage', db='elc') }}">Елец</a></li>
+                                <li><a href="{{ url_for('main.manage', db='zdn') }}">Задонск</a></li>
+                                <li><a href="{{ url_for('main.manage', db='izm') }}">Измалково</a></li>
+                                <li><a href="{{ url_for('main.manage', db='krs') }}">Красное</a></li>
+                                <li><a href="{{ url_for('main.manage', db='lbd') }}">Лебедянь</a></li>
+                                <li><a href="{{ url_for('main.manage', db='lvt') }}">Лев Толстой</a></li>
+                                <li><a href="{{ url_for('main.manage', db='stn') }}">Становое</a></li>
+                                <li><a href="{{ url_for('main.manage', db='trb') }}">Тербуны</a></li>
                                 <li><a href="{{ url_for('main.manage', db='usm') }}">Усмань</a></li>
+                                <li><a href="{{ url_for('main.manage', db='hlv') }}">Хлевное</a></li>
+                                <li><a href="{{ url_for('main.manage', db='cha') }}">Чаплыгин</a></li>
                                 <li class="divider"></li>
-                                <li><a href="{{ url_for('main.manage') }}">Массовые операции</a></li>                        
+                                <li><a href="{{ url_for('main.manage') }}">Массовые операции</a></li>                       
                             </ul>
                         </li>
                         <li class="dropdown">
                             <a class="dropdown-toggle" data-toggle="dropdown" href='#'>Администрирование баз 1С <span class="caret"></span></a>
-                            <ul class="dropdown-menu dropdown-menu-right">                            
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li><a href="{{ url_for('main.admin', db='bor') }}">Борино</a></li>
+                                <li><a href="{{ url_for('main.admin', db='vol') }}">Волово</a></li>
                                 <li><a href="{{ url_for('main.admin', db='grz') }}">Грязи</a></li>
+                                <li><a href="{{ url_for('main.admin', db='dan') }}">Данков</a></li>
                                 <li><a href="{{ url_for('main.admin', db='dbk') }}">Добринка</a></li>
-                                <li><a href="{{ url_for('main.admin', db='lvt') }}">Лев-толстой</a></li>                            
+                                <li><a href="{{ url_for('main.admin', db='dbr') }}">Доброе</a></li>
+                                <li><a href="{{ url_for('main.admin', db='dlk') }}">Долгоруково</a></li>
+                                <li><a href="{{ url_for('main.admin', db='elc') }}">Елец</a></li>
+                                <li><a href="{{ url_for('main.admin', db='zdn') }}">Задонск</a></li>
+                                <li><a href="{{ url_for('main.admin', db='izm') }}">Измалково</a></li>
+                                <li><a href="{{ url_for('main.admin', db='krs') }}">Красное</a></li>
+                                <li><a href="{{ url_for('main.admin', db='lbd') }}">Лебедянь</a></li>
+                                <li><a href="{{ url_for('main.admin', db='lvt') }}">Лев Толстой</a></li>
+                                <li><a href="{{ url_for('main.admin', db='stn') }}">Становое</a></li>
+                                <li><a href="{{ url_for('main.admin', db='trb') }}">Тербуны</a></li>
                                 <li><a href="{{ url_for('main.admin', db='usm') }}">Усмань</a></li>
+                                <li><a href="{{ url_for('main.admin', db='hlv') }}">Хлевное</a></li>
+                                <li><a href="{{ url_for('main.admin', db='cha') }}">Чаплыгин</a></li>                                
                                 <li class="divider"></li> 
                                 <li><a href="{{ url_for('main.admin') }}">Общие настройки</a></li> 
                             </ul>
@@ -394,15 +446,43 @@
                         <div class="panel-body">
                             <ul class="list-group" id="list-group_count">
                                 <!-- рабочие -->
+                                <a id="bor_work" data-toggle="tooltip" data-placement="left" title={% if 'bor_work' in g.statuses %} "{{ g.statuses.get('bor_work') }}" {% else %} "bor_work_error" {% endif %} {% if 'bor_work' in g.bases_2 %} href="javascript:remove('bor_work')" class="list-group-item list-group-item-success" {% elif 'bor_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Борино</strong></a>
+                                <a id="vol_work" data-toggle="tooltip" data-placement="left" title={% if 'vol_work' in g.statuses %} "{{ g.statuses.get('vol_work') }}" {% else %} "vol_work_error" {% endif %} {% if 'vol_work' in g.bases_2 %} href="javascript:remove('vol_work')" class="list-group-item list-group-item-success" {% elif 'vol_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Волово</strong></a>
                                 <a id="grz_work" data-toggle="tooltip" data-placement="left" title={% if 'grz_work' in g.statuses %} "{{ g.statuses.get('grz_work') }}" {% else %} "grz_work_error" {% endif %} {% if 'grz_work' in g.bases_2 %} href="javascript:remove('grz_work')" class="list-group-item list-group-item-success" {% elif 'grz_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Грязи</strong></a>
+                                <a id="dan_work" data-toggle="tooltip" data-placement="left" title={% if 'dan_work' in g.statuses %} "{{ g.statuses.get('dan_work') }}" {% else %} "dan_work_error" {% endif %} {% if 'dan_work' in g.bases_2 %} href="javascript:remove('dan_work')" class="list-group-item list-group-item-success" {% elif 'dan_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Данков</strong></a>
                                 <a id="dbk_work" data-toggle="tooltip" data-placement="left" title={% if 'dbk_work' in g.statuses %} "{{ g.statuses.get('dbk_work') }}" {% else %} "dbk_work_error" {% endif %} {% if 'dbk_work' in g.bases_2 %} href="javascript:remove('dbk_work')" class="list-group-item list-group-item-success" {% elif 'dbk_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Добринка</strong></a>
-                                <a id="lvt_work" data-toggle="tooltip" data-placement="left" title={% if 'lvt_work' in g.statuses %} "{{ g.statuses.get('lvt_work') }}" {% else %} "lvt_work_error" {% endif %} {% if 'lvt_work' in g.bases_2 %} href="javascript:remove('lvt_work')" class="list-group-item list-group-item-success" {% elif 'lvt_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Лев-толстой</strong></a>
+                                <a id="dbr_work" data-toggle="tooltip" data-placement="left" title={% if 'dbr_work' in g.statuses %} "{{ g.statuses.get('dbr_work') }}" {% else %} "dbr_work_error" {% endif %} {% if 'dbr_work' in g.bases_2 %} href="javascript:remove('dbr_work')" class="list-group-item list-group-item-success" {% elif 'dbr_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Доброе</strong></a>
+                                <a id="dlk_work" data-toggle="tooltip" data-placement="left" title={% if 'dlk_work' in g.statuses %} "{{ g.statuses.get('dlk_work') }}" {% else %} "dlk_work_error" {% endif %} {% if 'dlk_work' in g.bases_2 %} href="javascript:remove('dlk_work')" class="list-group-item list-group-item-success" {% elif 'dlk_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Долгоруково</strong></a>
+                                <a id="elc_work" data-toggle="tooltip" data-placement="left" title={% if 'elc_work' in g.statuses %} "{{ g.statuses.get('elc_work') }}" {% else %} "elc_work_error" {% endif %} {% if 'elc_work' in g.bases_2 %} href="javascript:remove('elc_work')" class="list-group-item list-group-item-success" {% elif 'elc_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Елец</strong></a>
+                                <a id="zdn_work" data-toggle="tooltip" data-placement="left" title={% if 'zdn_work' in g.statuses %} "{{ g.statuses.get('zdn_work') }}" {% else %} "zdn_work_error" {% endif %} {% if 'zdn_work' in g.bases_2 %} href="javascript:remove('zdn_work')" class="list-group-item list-group-item-success" {% elif 'zdn_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Задонск</strong></a>
+                                <a id="izm_work" data-toggle="tooltip" data-placement="left" title={% if 'izm_work' in g.statuses %} "{{ g.statuses.get('izm_work') }}" {% else %} "izm_work_error" {% endif %} {% if 'izm_work' in g.bases_2 %} href="javascript:remove('izm_work')" class="list-group-item list-group-item-success" {% elif 'izm_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Измалково</strong></a>
+                                <a id="krs_work" data-toggle="tooltip" data-placement="left" title={% if 'krs_work' in g.statuses %} "{{ g.statuses.get('krs_work') }}" {% else %} "krs_work_error" {% endif %} {% if 'krs_work' in g.bases_2 %} href="javascript:remove('krs_work')" class="list-group-item list-group-item-success" {% elif 'krs_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Красное</strong></a>
+                                <a id="lbd_work" data-toggle="tooltip" data-placement="left" title={% if 'lbd_work' in g.statuses %} "{{ g.statuses.get('lbd_work') }}" {% else %} "lbd_work_error" {% endif %} {% if 'lbd_work' in g.bases_2 %} href="javascript:remove('lbd_work')" class="list-group-item list-group-item-success" {% elif 'lbd_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Лебедянь</strong></a>
+                                <a id="lvt_work" data-toggle="tooltip" data-placement="left" title={% if 'lvt_work' in g.statuses %} "{{ g.statuses.get('lvt_work') }}" {% else %} "lvt_work_error" {% endif %} {% if 'lvt_work' in g.bases_2 %} href="javascript:remove('lvt_work')" class="list-group-item list-group-item-success" {% elif 'lvt_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Лев Толстой</strong></a>
+                                <a id="stn_work" data-toggle="tooltip" data-placement="left" title={% if 'stn_work' in g.statuses %} "{{ g.statuses.get('stn_work') }}" {% else %} "stn_work_error" {% endif %} {% if 'stn_work' in g.bases_2 %} href="javascript:remove('stn_work')" class="list-group-item list-group-item-success" {% elif 'stn_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Становое</strong></a>
+                                <a id="trb_work" data-toggle="tooltip" data-placement="left" title={% if 'trb_work' in g.statuses %} "{{ g.statuses.get('trb_work') }}" {% else %} "trb_work_error" {% endif %} {% if 'trb_work' in g.bases_2 %} href="javascript:remove('trb_work')" class="list-group-item list-group-item-success" {% elif 'trb_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Тербуны</strong></a>
                                 <a id="usm_work" data-toggle="tooltip" data-placement="left" title={% if 'usm_work' in g.statuses %} "{{ g.statuses.get('usm_work') }}" {% else %} "usm_work_error" {% endif %} {% if 'usm_work' in g.bases_2 %} href="javascript:remove('usm_work')" class="list-group-item list-group-item-success" {% elif 'usm_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Усмань</strong></a>
+                                <a id="hlv_work" data-toggle="tooltip" data-placement="left" title={% if 'hlv_work' in g.statuses %} "{{ g.statuses.get('hlv_work') }}" {% else %} "hlv_work_error" {% endif %} {% if 'hlv_work' in g.bases_2 %} href="javascript:remove('hlv_work')" class="list-group-item list-group-item-success" {% elif 'hlv_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Хлевное</strong></a>
+                                <a id="cha_work" data-toggle="tooltip" data-placement="left" title={% if 'cha_work' in g.statuses %} "{{ g.statuses.get('cha_work') }}" {% else %} "cha_work_error" {% endif %} {% if 'cha_work' in g.bases_2 %} href="javascript:remove('cha_work')" class="list-group-item list-group-item-success" {% elif 'cha_work' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}><strong>Чаплыгин</strong></a>
                                 <!-- тестовые -->
+                                <a id="bor_test" data-toggle="tooltip" data-placement="left" title={% if 'bor_test' in g.statuses %} "{{ g.statuses.get('bor_test') }}" {% else %} "bor_test_error" {% endif %} {% if 'bor_test' in g.bases_2 %} href="javascript:remove('bor_test')" class="list-group-item list-group-item-success" {% elif 'bor_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Борино</a>
+                                <a id="vol_test" data-toggle="tooltip" data-placement="left" title={% if 'vol_test' in g.statuses %} "{{ g.statuses.get('vol_test') }}" {% else %} "vol_test_error" {% endif %} {% if 'vol_test' in g.bases_2 %} href="javascript:remove('vol_test')" class="list-group-item list-group-item-success" {% elif 'vol_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Волово</a>
                                 <a id="grz_test" data-toggle="tooltip" data-placement="left" title={% if 'grz_test' in g.statuses %} "{{ g.statuses.get('grz_test') }}" {% else %} "grz_test_error" {% endif %} {% if 'grz_test' in g.bases_2 %} href="javascript:remove('grz_test')" class="list-group-item list-group-item-success" {% elif 'grz_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Грязи</a>
+                                <a id="dan_test" data-toggle="tooltip" data-placement="left" title={% if 'dan_test' in g.statuses %} "{{ g.statuses.get('dan_test') }}" {% else %} "dan_test_error" {% endif %} {% if 'dan_test' in g.bases_2 %} href="javascript:remove('dan_test')" class="list-group-item list-group-item-success" {% elif 'dan_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Данков</a>
                                 <a id="dbk_test" data-toggle="tooltip" data-placement="left" title={% if 'dbk_test' in g.statuses %} "{{ g.statuses.get('dbk_test') }}" {% else %} "dbk_test_error" {% endif %} {% if 'dbk_test' in g.bases_2 %} href="javascript:remove('dbk_test')" class="list-group-item list-group-item-success" {% elif 'dbk_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Добринка</a>
-                                <a id="lvt_test" data-toggle="tooltip" data-placement="left" title={% if 'lvt_test' in g.statuses %} "{{ g.statuses.get('lvt_test') }}" {% else %} "lvt_test_error" {% endif %} {% if 'lvt_test' in g.bases_2 %} href="javascript:remove('lvt_test')" class="list-group-item list-group-item-success" {% elif 'lvt_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Лев-толстой</a>
+                                <a id="dbr_test" data-toggle="tooltip" data-placement="left" title={% if 'dbr_test' in g.statuses %} "{{ g.statuses.get('dbr_test') }}" {% else %} "dbr_test_error" {% endif %} {% if 'dbr_test' in g.bases_2 %} href="javascript:remove('dbr_test')" class="list-group-item list-group-item-success" {% elif 'dbr_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Доброе</a>
+                                <a id="dlk_test" data-toggle="tooltip" data-placement="left" title={% if 'dlk_test' in g.statuses %} "{{ g.statuses.get('dlk_test') }}" {% else %} "dlk_test_error" {% endif %} {% if 'dlk_test' in g.bases_2 %} href="javascript:remove('dlk_test')" class="list-group-item list-group-item-success" {% elif 'dlk_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Долгоруково</a>
+                                <a id="elc_test" data-toggle="tooltip" data-placement="left" title={% if 'elc_test' in g.statuses %} "{{ g.statuses.get('elc_test') }}" {% else %} "elc_test_error" {% endif %} {% if 'elc_test' in g.bases_2 %} href="javascript:remove('elc_test')" class="list-group-item list-group-item-success" {% elif 'elc_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Елец</a>
+                                <a id="zdn_test" data-toggle="tooltip" data-placement="left" title={% if 'zdn_test' in g.statuses %} "{{ g.statuses.get('zdn_test') }}" {% else %} "zdn_test_error" {% endif %} {% if 'zdn_test' in g.bases_2 %} href="javascript:remove('zdn_test')" class="list-group-item list-group-item-success" {% elif 'zdn_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Задонск</a>
+                                <a id="izm_test" data-toggle="tooltip" data-placement="left" title={% if 'izm_test' in g.statuses %} "{{ g.statuses.get('izm_test') }}" {% else %} "izm_test_error" {% endif %} {% if 'izm_test' in g.bases_2 %} href="javascript:remove('izm_test')" class="list-group-item list-group-item-success" {% elif 'izm_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Измалково</a>
+                                <a id="krs_test" data-toggle="tooltip" data-placement="left" title={% if 'krs_test' in g.statuses %} "{{ g.statuses.get('krs_test') }}" {% else %} "krs_test_error" {% endif %} {% if 'krs_test' in g.bases_2 %} href="javascript:remove('krs_test')" class="list-group-item list-group-item-success" {% elif 'krs_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Красное</a>
+                                <a id="lbd_test" data-toggle="tooltip" data-placement="left" title={% if 'lbd_test' in g.statuses %} "{{ g.statuses.get('lbd_test') }}" {% else %} "lbd_test_error" {% endif %} {% if 'lbd_test' in g.bases_2 %} href="javascript:remove('lbd_test')" class="list-group-item list-group-item-success" {% elif 'lbd_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Лебедянь</a>
+                                <a id="lvt_test" data-toggle="tooltip" data-placement="left" title={% if 'lvt_test' in g.statuses %} "{{ g.statuses.get('lvt_test') }}" {% else %} "lvt_test_error" {% endif %} {% if 'lvt_test' in g.bases_2 %} href="javascript:remove('lvt_test')" class="list-group-item list-group-item-success" {% elif 'lvt_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Лев Толстой</a>
+                                <a id="stn_test" data-toggle="tooltip" data-placement="left" title={% if 'stn_test' in g.statuses %} "{{ g.statuses.get('stn_test') }}" {% else %} "stn_test_error" {% endif %} {% if 'stn_test' in g.bases_2 %} href="javascript:remove('stn_test')" class="list-group-item list-group-item-success" {% elif 'stn_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Становое</a>
+                                <a id="trb_test" data-toggle="tooltip" data-placement="left" title={% if 'trb_test' in g.statuses %} "{{ g.statuses.get('trb_test') }}" {% else %} "trb_test_error" {% endif %} {% if 'trb_test' in g.bases_2 %} href="javascript:remove('trb_test')" class="list-group-item list-group-item-success" {% elif 'trb_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Тербуны</a>
                                 <a id="usm_test" data-toggle="tooltip" data-placement="left" title={% if 'usm_test' in g.statuses %} "{{ g.statuses.get('usm_test') }}" {% else %} "usm_test_error" {% endif %} {% if 'usm_test' in g.bases_2 %} href="javascript:remove('usm_test')" class="list-group-item list-group-item-success" {% elif 'usm_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Усмань</a>
+                                <a id="hlv_test" data-toggle="tooltip" data-placement="left" title={% if 'hlv_test' in g.statuses %} "{{ g.statuses.get('hlv_test') }}" {% else %} "hlv_test_error" {% endif %} {% if 'hlv_test' in g.bases_2 %} href="javascript:remove('hlv_test')" class="list-group-item list-group-item-success" {% elif 'hlv_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Хлевное</a>
+                                <a id="cha_test" data-toggle="tooltip" data-placement="left" title={% if 'cha_test' in g.statuses %} "{{ g.statuses.get('cha_test') }}" {% else %} "cha_test_error" {% endif %} {% if 'cha_test' in g.bases_2 %} href="javascript:remove('cha_test')" class="list-group-item list-group-item-success" {% elif 'cha_test' in g.bases_1 %} class="list-group-item disabled" {% else %}class="list-group-item disabled" style="display:none"{% endif %}>Чаплыгин</a>
                             </ul>
                         </div>
                     </div>
