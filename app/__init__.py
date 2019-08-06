@@ -1,10 +1,10 @@
-from flask import Flask, render_template
-from config import Config
-from flask_bootstrap import Bootstrap
-from flask_redis import FlaskRedis
-from flask_login import LoginManager
-from flask_socketio import SocketIO
-from flask_mail import Mail
+from flask              import Flask, render_template
+from config             import Config
+from flask_bootstrap    import Bootstrap
+from flask_redis        import FlaskRedis
+from flask_login        import LoginManager
+from flask_socketio     import SocketIO
+from flask_mail         import Mail
 
 # from flask_sqlalchemy import SQLAlchemy
 # from flask_migrate import Migrate

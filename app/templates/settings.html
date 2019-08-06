@@ -1,15 +1,68 @@
 {% extends 'index.html' %}
 
 
-{% block app_content %}    
-    <div class="form-group">        
+{% block app_content %}
+    <!-- Modal -->
+    <div class="modal fade" id="myModal1" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">                    
+                    <h4 class="modal-title">Процедура удаления</h4>
+                </div>
+                <div class="modal-body">
+                    <p id="modaltext"></p>
+                    <span id="key_del" hidden></span>
+                </div>
+                <div class="modal-footer">
+                    <button id="remove" type="button" class="btn btn-default" data-dismiss="modal">Да</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Нет</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="myModal2" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">                    
+                    <h4 class="modal-title">Процедура редактирования</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="site_user">Пользователь</label>
+                                <input type="" class="form-control" id="site_user">
+                            </div>
+                            <div class="form-group">
+                                <label for="select_role">Роль</label>
+                                <select class="form-control" id="select_role">
+                                    <option value="admin">admin</option>
+                                    <option value="user">user</option>
+                                </select>
+                            </div>
+                            <span id="key_edit" hidden></span>                            
+                        </div>
+                    </div>                    
+                </div>
+                <div class="modal-footer">
+                    <button id="save" type="button" class="btn btn-default" data-dismiss="modal">Сохранить</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Выйти</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
         <h4><strong>Общие настройки</strong></h4>        
         <ul class="nav nav-tabs">
-            <li class="active"><a data-toggle="tab" href="#1">Начальные настройки</a></li>            
+            <li id="li_1" class="active"><a data-toggle="tab" href="#tab_content_1">Начальные настройки</a></li>            
+            {% if current_user.username == 'Колыхалов А.В.' %}<li id="li_2"><a data-toggle="tab" href="#tab_content_2">Настройки пользователей сайта</a></li>{% endif %}
             <!-- <li><a data-toggle="tab" href="#2">Актуальность баз</a></li> -->
         </ul>
         <div class="tab-content">
-            <div id="1" class="tab-pane fade in active">                
+            <div id="tab_content_1" class="tab-pane fade in active">
                 <h4>Внимание!</h4>
                 <p>Установка интервала необходима для проверки результатов расчета в базе 1С (по умолчанию 10 мин).</p>                
                 <div class="panel-group" id="accordion">
@@ -35,7 +88,28 @@
                     {% endfor %}                    
                 </div>                          
             </div>            
-            <div id="2" class="tab-pane fade">
+            <div id="tab_content_2" class="tab-pane fade">
+                <h4></h4>
+                <div class="panel panel-default">
+                    <!-- Default panel contents -->
+                    <div class="panel-heading">
+                        <a href="{{ url_for('auth.register') }}"><span class="glyphicon glyphicon-plus"></span></a>                        
+                    </div>    
+                    <!-- List group -->
+                    <ul class="list-group">
+                        {% for key, username, role in users %}                            
+                            {% if username != current_user.username %}
+                                <li class="list-group-item">
+                                    <a href="#" id="site_user_{{ key }}" data-toggle="popover" data-html="true" data-trigger="focus" data-content="<a href='#' data-toggle='modal' data-target='#myModal2' data-whatever='{&quot;key&quot;: &quot;{{key}}&quot;, &quot;username&quot;: &quot;{{ username }}&quot;, &quot;role&quot;: &quot;{{role}}&quot;}'>Редактировать</a><br><a href='#' data-toggle='modal' data-target='#myModal1' data-whatever='{&quot;key&quot;: &quot;{{key}}&quot;, &quot;username&quot;: &quot;{{ username }}&quot;}'>Удалить</a>">
+                                        {{ username }} ({{ role }})
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div id="tab_content_3" class="tab-pane fade">
                 <h4>Внимание!</h4>
                 <p>Для ускорения работы сайта данные из баз кэшируются. В кэш заносятся "Настройки пользователей" и "Период расчета(дата запрета редактирования)".</p>
                 <p>При нажатии на кнопку кэш очищается.</p>
@@ -56,9 +130,9 @@
                         {% endfor %}                        
                     </ul>
                 </div>                
-            </div>            
-        </div>        
-    </div>    
+            </div>
+        </div>
+    </div>
 {% endblock %} 
 
 {% block app_scripts %}    
@@ -68,7 +142,49 @@
         // $('#settings_host').mask('192.168.***.*');        
         $('#list-group_cache input:checkbox').prop('checked', false)
 
-        $('input[type=text]').on('change', function () {            
+        $('[data-toggle="popover"]').popover();
+
+        // форма удаления
+        $('#myModal1').on('show.bs.modal', function (event) {
+            var
+                _button = $(event.relatedTarget),
+                _user = _button.data('whatever')['username'],
+                _key  = _button.data('whatever')['key'];
+            $('#modaltext').html('<strong>'+_user+'</strong> будет удален из списка пользователей сайта.');
+            $('#key_del').text(_key);
+        });
+
+        // форма редактирования
+        $('#myModal2').on('show.bs.modal', function (event) {
+            var
+                _button = $(event.relatedTarget),
+                _user = _button.data('whatever')['username'],
+                _role = _button.data('whatever')['role'],
+                _key  = _button.data('whatever')['key'];       
+            $('#site_user').val(_user);
+            $('#select_role').val(_role).attr('selected');
+            $('#key_edit').text(_key);
+        });
+
+        $('#remove').on('click', function () {
+            $.post('{{ url_for("main.clean") }}', {key: $('#key_del').text()})
+                .done( function(response) { 
+                    location.reload();
+                })
+                .fail( function(response) {console.log(response);}) 
+        })
+
+        $('#save').on('click', function () {
+            $.post('{{ url_for("main.save") }}', {key: $('#key_edit').text(), username: $('#site_user').val(), role: $('#select_role').val()})
+                .done( function(response) {
+                    $('#site_user_'+response['key'])
+                        .text(response['username']+' ('+response['role']+')')
+                        .attr('data-content', "<a href='#' data-toggle='modal' data-target='#myModal2' data-whatever='{&quot;key&quot;: &quot;"+response['key']+"&quot;, &quot;username&quot;: &quot;"+response['username']+"&quot;, &quot;role&quot;: &quot;"+response['role']+"&quot;}'>Редактировать</a><br><a href='#' data-toggle='modal' data-target='#myModal1' data-whatever='{&quot;key&quot;: &quot;"+response['key']+"&quot;, &quot;username&quot;: &quot;"+response['username']+"&quot;}'>Удалить</a>");
+                })
+                .fail( function(response) {console.log(response);})
+        })        
+        
+        $('input[type=text]').on('change', function () {
             var
                 $this = $(this),                
                 _interval = '',

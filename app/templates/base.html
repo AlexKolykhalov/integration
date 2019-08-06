@@ -30,7 +30,7 @@
                     </form>                
                 </ul>
                 <ul class="nav navbar-nav navbar-right">                    
-                    <li><a href="#"><span class="glyphicon glyphicon-user"></span> {{ current_user.id }}</a></li>
+                    <li><a href={% if current_user.username == 'Колыхалов А.В.' %}"{{ url_for('auth.profile') }}"{% else %}"#"{% endif %}><span class="glyphicon glyphicon-user"></span> {{ current_user.username }}</a></li>
                     <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out"></span> Выйти</a></li>
                 </ul>
             {% endif %}

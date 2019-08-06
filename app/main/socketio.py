@@ -5,7 +5,6 @@ from datetime       import datetime, timedelta
 from sys            import platform
 from subprocess     import call, TimeoutExpired, DEVNULL 
 
-# import subprocess
 import querySQL
 
 # import dash
@@ -13,7 +12,7 @@ import querySQL
 # import dash_html_components as html
 
 @socketio.on('connect', namespace='/test')
-def test_connect():
+def test_connect():    
     emit('response', {'data': 'Connected'}, broadcast=True)
 
 @socketio.on('disconnect', namespace='/test')
@@ -33,8 +32,7 @@ def change_period(data):
     connect_bases = []
     for base in data['BASES']:        
         host = redis_store.hmget(base[:3], ['host'])[0]
-        try:
-            # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        try:            
             if platform == 'linux':
                 call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
             else:
@@ -63,8 +61,7 @@ def start_counting(data):
     connect_bases = []
     for base in data['BASES']:
         host = redis_store.hmget(base[:3], ['host'])[0]
-        try:
-            # subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+        try:            
             if platform == 'linux':
                 call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
             else:
@@ -135,8 +132,7 @@ def server_response():
                     date = datetime.strptime('01.'+str_date.replace('.2', '.4'), '%d.%m.%Y')
                     PNN  = redis_store.hmget(base+'_'+operating_mode, ['PNN'])[0]
                     host = redis_store.hmget(base, ['host'])[0]
-                    try:
-                        #subprocess.call(["ping", "-n", "1", host], timeout=0.25, stdout=subprocess.DEVNULL)
+                    try:                        
                         if platform == 'linux':
                             call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
                         else:
