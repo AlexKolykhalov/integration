@@ -7,7 +7,7 @@ from flask          import render_template, g, request, jsonify, redirect, url_f
 from flask_login    import login_required, current_user
 from datetime       import datetime, timedelta
 from decimal        import Decimal
-from pymssql        import ProgrammingError 
+from pymssql        import ProgrammingError, OperationalError 
 from sys            import platform
 from subprocess     import call, TimeoutExpired, DEVNULL
 
@@ -77,8 +77,26 @@ def manage(db):
             PO     = redis_store.hmget(db, ['PO'])[0]            
             db     = name+' '+period+' '+PO        
     else:        
-        # сортировка при выводе 
-        order = {'grz': '1', 'dbk': '2', 'lvt': '3', 'usm': '4'}
+        # сортировка при выводе
+        order = {'bor': 'a',
+                 'vol': 'b',
+                 'grz': 'c',
+                 'dan': 'd',
+                 'dbk': 'e',
+                 'dbr': 'f',
+                 'dlk': 'g',
+                 'elc': 'h',
+                 'zdn': 'i',
+                 'izm': 'j',
+                 'krs': 'k',
+                 'lbd': 'l',
+                 'lvt': 'm',
+                 'stn': 'n',
+                 'trb': 'o',
+                 'usm': 'p',
+                 'hlv': 'q',
+                 'cha': 'r'}
+        
         for base in redis_store.smembers('current_bases'):
             num = order[base]
             data[num+base] = {'basename': redis_store.hmget(base, ['name'])[0]}
@@ -89,33 +107,134 @@ def manage(db):
 @bp.route('/admin/<string:db>')
 @login_required
 def admin(db):
-    if db == '':        
+    if db == '':
         # первоначальное заполнение по умолчанию
+        if redis_store.sismember('current_bases', 'elc') == 0:
+            redis_store.hmset('elc', {'name': 'Елец', 'host': '192.168.102.1', 'interval': '10'})
+            redis_store.hmset('elc_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('elc_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'elc')
+        
+        if redis_store.sismember('current_bases', 'bor') == 0:
+            redis_store.hmset('bor', {'name': 'Борино', 'host': '192.168.103.1', 'interval': '10'})
+            redis_store.hmset('bor_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('bor_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'bor')
+
+        if redis_store.sismember('current_bases', 'vol') == 0:
+            redis_store.hmset('vol', {'name': 'Волово', 'host': '192.168.104.1', 'interval': '10'})
+            redis_store.hmset('vol_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('vol_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'vol')
+        
         if redis_store.sismember('current_bases', 'grz') == 0:
             redis_store.hmset('grz', {'name': 'Грязи', 'host': '192.168.105.1', 'interval': '10'})
             redis_store.hmset('grz_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.hmset('grz_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.sadd('current_bases', 'grz')
 
+        if redis_store.sismember('current_bases', 'dan') == 0:
+            redis_store.hmset('dan', {'name': 'Данков', 'host': '192.168.106.1', 'interval': '10'})
+            redis_store.hmset('dan_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('dan_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'dan')
+        
         if redis_store.sismember('current_bases', 'dbk') == 0:
             redis_store.hmset('dbk', {'name': 'Добринка', 'host': '192.168.107.1', 'interval': '10'})
             redis_store.hmset('dbk_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.hmset('dbk_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.sadd('current_bases', 'dbk')
 
+        if redis_store.sismember('current_bases', 'dbr') == 0:
+            redis_store.hmset('dbr', {'name': 'Доброе', 'host': '192.168.108.1', 'interval': '10'})
+            redis_store.hmset('dbr_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('dbr_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'dbr')
+
+        if redis_store.sismember('current_bases', 'dlk') == 0:
+            redis_store.hmset('dlk', {'name': 'Долгоруково', 'host': '192.168.109.1', 'interval': '10'})
+            redis_store.hmset('dlk_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('dlk_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'dlk')
+
+        if redis_store.sismember('current_bases', 'zdn') == 0:
+            redis_store.hmset('zdn', {'name': 'Задонск', 'host': '192.168.110.1', 'interval': '10'})
+            redis_store.hmset('zdn_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('zdn_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'zdn')
+        
+        if redis_store.sismember('current_bases', 'izm') == 0:
+            redis_store.hmset('izm', {'name': 'Измалково', 'host': '192.168.111.1', 'interval': '10'})
+            redis_store.hmset('izm_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('izm_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'izm')
+        
+        if redis_store.sismember('current_bases', 'krs') == 0:
+            redis_store.hmset('krs', {'name': 'Красное', 'host': '192.168.112.1', 'interval': '10'})
+            redis_store.hmset('krs_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('krs_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'krs')
+        
+        if redis_store.sismember('current_bases', 'lbd') == 0:
+            redis_store.hmset('lbd', {'name': 'Лебедянь', 'host': '192.168.113.1', 'interval': '10'})
+            redis_store.hmset('lbd_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('lbd_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'lbd')
+        
         if redis_store.sismember('current_bases', 'lvt') == 0:
             redis_store.hmset('lvt', {'name': 'Лев Толстой', 'host': '192.168.114.1', 'interval': '10'})
             redis_store.hmset('lvt_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.hmset('lvt_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.sadd('current_bases', 'lvt')
 
+        if redis_store.sismember('current_bases', 'stn') == 0:
+            redis_store.hmset('stn', {'name': 'Становое', 'host': '192.168.115.1', 'interval': '10'})
+            redis_store.hmset('stn_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('stn_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'stn')
+        
+        if redis_store.sismember('current_bases', 'trb') == 0:
+            redis_store.hmset('trb', {'name': 'Тербуны', 'host': '192.168.116.1', 'interval': '10'})
+            redis_store.hmset('trb_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('trb_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'trb')
+
         if redis_store.sismember('current_bases', 'usm') == 0:
             redis_store.hmset('usm', {'name': 'Усмань', 'host': '192.168.117.1', 'interval': '10'})
             redis_store.hmset('usm_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
             redis_store.hmset('usm_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
-            redis_store.sadd('current_bases', 'usm')        
+            redis_store.sadd('current_bases', 'usm')
+
+        if redis_store.sismember('current_bases', 'hlv') == 0:
+            redis_store.hmset('hlv', {'name': 'Хлевное', 'host': '192.168.118.1', 'interval': '10'})
+            redis_store.hmset('hlv_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('hlv_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'hlv')
                 
-        order = {'grz': '1', 'dbk': '2', 'lvt': '3', 'usm': '4'}
+        if redis_store.sismember('current_bases', 'cha') == 0:
+            redis_store.hmset('cha', {'name': 'Чаплыгин', 'host': '192.168.119.1', 'interval': '10'})
+            redis_store.hmset('cha_work', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.hmset('cha_test', {'cache': '', 'PO': '', 'period': '', 'status': '0', 'PNN': '', 'check_time': ''})
+            redis_store.sadd('current_bases', 'cha')
+        
+        order = {'bor': 'a',
+                 'vol': 'b',
+                 'grz': 'c',
+                 'dan': 'd',
+                 'dbk': 'e',
+                 'dbr': 'f',
+                 'dlk': 'g',
+                 'elc': 'h',
+                 'zdn': 'i',
+                 'izm': 'j',
+                 'krs': 'k',
+                 'lbd': 'l',
+                 'lvt': 'm',
+                 'stn': 'n',
+                 'trb': 'o',
+                 'usm': 'p',
+                 'hlv': 'q',
+                 'cha': 'r'}
 
         data = {}        
         for base in redis_store.smembers('current_bases'):
@@ -145,8 +264,14 @@ def admin(db):
     bad_num_ls = []
     empty_grs  = []
     base = db+'_'+current_user.operating_mode
-    conn = get_connection(base)
-    cursor = conn.cursor()
+
+    try:
+        conn = get_connection(base)
+        cursor = conn.cursor()
+    except OperationalError as err:
+        html_body='<p><b>Район:</b> '+basename+'</p><p><b>Действие:</b> Подключение к базе '+base+'</p><p><b>Текст ошибки: </b>'+str(err.args[0])+'</p>'
+        send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
+        return render_template('errors/500.html', error=err)        
 
     # if redis_store.hmget(base, ['cache'])[0] == '': # в данном случае НЕ ИСПОЛЬЗУЕТСЯ Redis, данные каждый раз берутся из БД  
     #     users = conn.execute(querySQL.sql_select9).fetchall()        
@@ -166,15 +291,28 @@ def admin(db):
     # bad_num_ls = conn.execute(querySQL.sql_select7).fetchall()
     # empty_grs  = conn.execute(querySQL.sql_select8).fetchall()
     
-    # настройки пользователей
-    cursor.execute(querySQL.sql_select9)
-    users = cursor.fetchall()
-    # неправильные ЛС
-    cursor.execute(querySQL.sql_select7)    
-    bad_num_ls = cursor.fetchall()
-    # здания без ГРС
-    cursor.execute(querySQL.sql_select8)
-    empty_grs  = cursor.fetchall()
+    try:
+        # настройки пользователей
+        cursor.execute(querySQL.sql_select9)
+        users = cursor.fetchall()
+    except ProgrammingError as err:
+        html_body='<p><b>Район:</b> '+basename+'</p><p><b>Действие:</b> Получение настроек пользователей</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+        send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
+    try:
+        # неправильные ЛС
+        cursor.execute(querySQL.sql_select7)    
+        bad_num_ls = cursor.fetchall()
+    except ProgrammingError as err:
+        html_body='<p><b>Район:</b> '+basename+'</p><p><b>Действие:</b> Получение данных по неправльным ЛС</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+        send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
+    try:
+        # здания без ГРС
+        cursor.execute(querySQL.sql_select8)
+        empty_grs  = cursor.fetchall()
+    except ProgrammingError as err:
+        html_body='<p><b>Район:</b> '+basename+'</p><p><b>Действие:</b> Получение данных по зданиям без ГРС</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+        send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
+    
     conn.close()
 
     return render_template('admin.html', users=users, basename=basename, bad_num_ls=bad_num_ls, empty_grs=empty_grs)
@@ -234,8 +372,8 @@ def abonents(db=None, period_start=None, status_ls=None, status_podkl=None):
 @bp.route('/get_data_abonent', methods=['post'])
 @login_required
 def get_data_abonent():
-    data = []    
-    ls   = request.form['ls']   # например '037000010'    
+    data = {}
+    ls   = request.form['ls']   # например '037000010'
     db   = ''
 
     if 'period_start' in request.form:
@@ -247,16 +385,46 @@ def get_data_abonent():
         db = request.form['data']
     else:
         base_number = ls[0:3]
-        if base_number == '035':
-            db = 'lvt'
+
+        if base_number == '032':
+            db = 'elc'
+        elif base_number == '033':
+            db = 'bor'
+        elif base_number == '034':
+            db = 'vol'
+        elif base_number == '035':
+            db = 'grz'
+        elif base_number == '036':
+            db = 'dan'
         elif base_number == '037':
             db = 'dbk'
+        elif base_number == '038':
+            db = 'dbr'
+        elif base_number == '039':
+            db = 'dlk'
+        elif base_number == '040':
+            db = 'zdn'
+        elif base_number == '041':
+            db = 'izm'        
+        elif base_number == '042':
+            db = 'krs'
+        elif base_number == '043':
+            db = 'lbd'
         elif base_number == '044':
             db = 'lvt'
+        elif base_number == '045':
+            db = 'stn'
+        elif base_number == '046':
+            db = 'trb'
         elif base_number == '047':
             db = 'usm'
+        elif base_number == '048':
+            db = 'hlv'
+        elif base_number == '049':
+            db = 'cha'
 
     host = redis_store.hmget(db, ['host'])[0]
+    name = redis_store.hmget(db, ['name'])[0]
     try:            
         if platform == 'linux':
             call(["ping", "-c", "1", host], timeout=0.25, stdout=DEVNULL)
@@ -274,29 +442,50 @@ def get_data_abonent():
         sql_select5 = sql_select5.replace('<доп переменная @P3>', '').replace('<доп условие подключен/отключен>', '')
         sql_select  = sql_select5.replace('<доп переменная @P4>', 'SET @P4 = %s').replace('<доп таблица спр.Абоненты>', 'inner join dbo.Справочник_Абоненты on dbo.РегистрСведений_СостояниеПодключениеУслуг.Абонент = dbo.Справочник_Абоненты.Ссылка').replace('<доп условие отбор ЛС>', 'and dbo.Справочник_Абоненты.ЛицевойСчет = @P4')
     
-        cursor.execute(sql_select, (time, ls))# получение данных по состоянию подключения и персональных данных
-        result = cursor.fetchone()
-        data = get_personaldata(result)
+        try:
+            cursor.execute(sql_select, (time, ls))# получение данных по состоянию подключения и персональным данным
+            result = cursor.fetchone()
+            data = get_personaldata(result)
+        except ProgrammingError as err:
+            html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Информация по абонентам (получение данных по состоянию подключения и персональным данным)</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+            send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
         
-        cursor.execute(querySQL.sql_select6, (time, ls))# получение данных по установленному оборудованию
-        result = cursor.fetchall()
-        ob = get_equipments(result)
-        data.update(ob)
+        try:
+            cursor.execute(querySQL.sql_select6, (time, ls))# получение данных по установленному оборудованию
+            result = cursor.fetchall()
+            ob = get_equipments(result)
+            data.update(ob)
+        except ProgrammingError as err:
+            html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Информация по абонентам (получение данных по установленному оборудованию)</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+            send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
+             
+        try:
+            cursor.execute(querySQL.sql_select11, (time, ls))# получение данных по параметрам расчета
+            result = cursor.fetchall()
+            param = get_parameters(result)
+            data.update(param)
+        except ProgrammingError as err:
+            html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Информация по абонентам (получение данных по параметрам расчета)</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+            send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
         
-        cursor.execute(querySQL.sql_select11, (time, ls))# получение данных по параметрам расчета
-        result = cursor.fetchall()
-        param = get_parameters(result)
-        data.update(param)
+        try:
+            cursor.execute(querySQL.sql_select12, (time, ls))# получение данных по режимам потребления
+            result = cursor.fetchall()
+            reg = get_regimes(result)
+            data.update(reg)
+        except ProgrammingError as err:
+            html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Информация по абонентам (получение данных по режимам потребления)</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+            send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
         
-        cursor.execute(querySQL.sql_select12, (time, ls))# получение данных по режимам потребления
-        result = cursor.fetchall()
-        reg = get_regimes(result)
-        data.update(reg)
+        try:
+            cursor.execute(querySQL.sql_select13, (time, ls))# получение данных по взаиморасчетам
+            result = cursor.fetchall()
+            acc = get_accounts(result)
+            data.update(acc)
+        except ProgrammingError as err:
+            html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Информация по абонентам (получение данных по взаиморасчетам)</p><p><b>Текст ошибки: </b>'+str(err.args[1])+'</p>'
+            send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
         
-        cursor.execute(querySQL.sql_select13, (time, ls))# получение данных по взаиморасчетам
-        result = cursor.fetchall()
-        acc = get_accounts(result)
-        data.update(acc)
     else:        
         sql_select = querySQL.sql_select6
         cursor.execute(sql_select, (time, ls))# получение данных по установленному оборудованию
@@ -314,6 +503,12 @@ def check():
     if redis_store.hmget(db, ['status'])[0] == '1':
         return jsonify('Расчет запущен!')    
     return jsonify('ok')
+
+# ajax
+@bp.route('/check_user_role', methods=['get'])
+@login_required
+def check_user_role():    
+    return jsonify(current_user.role == 'admin')
 
 # ajax
 @bp.route('/get_data', methods=['post'])
@@ -343,9 +538,13 @@ def get_data():
         except TimeoutExpired:            
             continue
         base   = db+'_'+current_user.operating_mode
-        conn = get_connection(base)            
-        cursor = conn.cursor()
-        
+        try:
+            conn = get_connection(base)
+        except OperationalError as err:
+            html_body='<p><b>Район:</b> '+name+'</p><p><b>Действие:</b> Подключение к базе '+base+'</p><p><b>Текст ошибки: </b>'+str(err.args[0])+'</p>'
+            send_email('500 Internal Server Error', 'ak8647@rambler.ru', ['ak8647@rambler.ru'], html_body)
+            continue
+        cursor = conn.cursor()        
         if mode == 'dz':
             time       = datetime.strptime(period_start, '%d.%m.%Y')
             check_time = time + timedelta(days=1)
@@ -566,7 +765,9 @@ def clean():
     # redis_store.hmset(base, {'period': '', 'PO': '', 'check_time': '', 'PNN': '', 'status': '0', 'cache': ''})
     return jsonify('')
 
-# function
+# ######################
+# functions
+# ######################
 def validation(db=None, mode=None, period_start=None, period_end=None, status_ls=None, status_podkl=None):
     try:
         if db != None and db not in redis_store.smembers('current_bases'):
