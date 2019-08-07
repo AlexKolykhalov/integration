@@ -58,7 +58,10 @@
         <h4><strong>Общие настройки</strong></h4>        
         <ul class="nav nav-tabs">
             <li id="li_1" class="active"><a data-toggle="tab" href="#tab_content_1">Начальные настройки</a></li>            
-            {% if current_user.username == 'Колыхалов А.В.' %}<li id="li_2"><a data-toggle="tab" href="#tab_content_2">Настройки пользователей сайта</a></li>{% endif %}
+            {% if current_user.username == 'Колыхалов А.В.' %}
+                <li id="li_2"><a data-toggle="tab" href="#tab_content_2">Настройки пользователей сайта</a></li>
+                <li id="li_3"><a data-toggle="tab" href="#tab_content_3">Текущие расчеты</a></li>
+            {% endif %}
             <!-- <li><a data-toggle="tab" href="#2">Актуальность баз</a></li> -->
         </ul>
         <div class="tab-content">
@@ -110,6 +113,22 @@
                 </div>
             </div>
             <div id="tab_content_3" class="tab-pane fade">
+                <h4></h4>
+                <div class="panel panel-default">
+                    <!-- Default panel contents -->
+                    <div class="panel-heading">
+                    </div>
+                    <!-- List group -->
+                    <ul class="list-group">
+                        {% for base in count_bases %}                            
+                            <li class="list-group-item">
+                                <a href="#" class="del_count_bases" id="{{ base }}">{{ base }}</a>
+                            </li>                            
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div id="tab_content_4" class="tab-pane fade">
                 <h4>Внимание!</h4>
                 <p>Для ускорения работы сайта данные из баз кэшируются. В кэш заносятся "Настройки пользователей" и "Период расчета(дата запрета редактирования)".</p>
                 <p>При нажатии на кнопку кэш очищается.</p>
@@ -196,6 +215,15 @@
             _interval = $this.val();            
             $.post('{{ url_for("main.save") }}', {db: _db, interval: _interval})
                 .done()
+                .fail( function(response) {console.log(response);})            
+        })
+
+        $('.del_count_bases').on('click', function () {            
+            _db      = $(this).attr('id');
+            $.post('{{ url_for("main.clean") }}', {db: _db})
+                .done( function(response) { 
+                    location.reload();
+                })
                 .fail( function(response) {console.log(response);})            
         })        
     </script>   
