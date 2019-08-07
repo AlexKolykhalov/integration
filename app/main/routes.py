@@ -235,7 +235,8 @@ def admin(db):
                  'usm': 'p',
                  'hlv': 'q',
                  'cha': 'r'}
-
+        
+        # список баз с их интервалами проверки
         data = {}        
         for base in redis_store.smembers('current_bases'):
             num = order[base]
@@ -244,9 +245,17 @@ def admin(db):
                             'interval': redis_store.hmget(base, ['interval'])[0]                            
                             }
 
+        # список пользователей сайта
         users = [(key, redis_store.hgetall(key)['username'], redis_store.hgetall(key)['role']) for key in redis_store.hkeys('site_users')]
+        
+        # список баз, по которым идет расчет
+        count_bases = []
+        for base in redis_store.smembers('current_bases'):
+            for operating_mode in ['work', 'test']:
+                if redis_store.hmget(base+'_'+operating_mode, 'status')[0] == '1':
+                    count_bases.append(base+'_'+operating_mode)
 
-        return render_template('settings.html', data=data, users=users)
+        return render_template('settings.html', data=data, users=users, count_bases=count_bases)
     
     host     = redis_store.hmget(db, ['host'])[0]
     basename = redis_store.hmget(db, ['name'])[0]    
@@ -753,10 +762,13 @@ def save():
 @bp.route('/clean', methods=['post'])
 @login_required
 def clean():
-    key = request.form['key']
-    redis_store.hdel('site_users', key)  # удаляем данные из таблицы site_users
-    redis_store.delete(key) # удаляем информацию о пользователе сайта    
-
+    if 'key' in request.form:
+        key = request.form['key']
+        redis_store.hdel('site_users', key)  # удаляем данные из таблицы site_users
+        redis_store.delete(key) # удаляем информацию о пользователе сайта        
+    else:
+        base = request.form['db']
+        redis_store.hmset(base, {'status': '0'})
     # base = request.form['db']    
     # for key in redis_store.hkeys('users'):
     #     if key[-8:] == base:
