@@ -1,18 +1,16 @@
 {% extends 'index.html' %}
 
 
-{% block app_content %}    
+{% block app_content %}
     {% if status == 1 %}
         <div class="form-group row">
-            <div class="col-xs-4">                
-                <!-- <div class="input-group"> -->
-                    <input id="input_search" type="text" class="form-control" placeholder="Введите лицевой счет абонента">
-                    <!-- <div class="input-group-btn">
-                        <button class="btn btn-default" id="search">
-                            <i class="glyphicon glyphicon-search"></i>
-                        </button>
-                    </div> -->
-                <!-- </div>                 -->
+            <div class="col-xs-12" id="anim" style="position: absolute; height: 100%; text-align: center; margin-top: 30%; display: none;">            
+                <img src={{ url_for('static', filename='ajax-loader.gif') }}>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-xs-4">
+                <input id="input_search" type="text" class="form-control" placeholder="Введите лицевой счет абонента">
             </div>
         </div>
         <div class="form-group row">
@@ -38,9 +36,9 @@
                 <div class="col-xs-12">
                     <h5 id="accounts"></h5>
                 </div>
-            </div>            
+            </div>
         </div>
-        <div class="form-group row">                        
+        <div class="form-group row">
             <div class="col-xs-7">
                 <h4>Оборудование</h4>
                 <div class="col-xs-12">
@@ -86,6 +84,9 @@
                 </table>
             </div>
             <div class="col-xs-5">
+                <div class="col-xs-12" id="anim" style="position: absolute; height: 100%; text-align: center; margin-top: 30%; display: none;">            
+                    <img src={{ url_for('static', filename='ajax-loader.gif') }}>
+                </div>
                 <div data-spy="affix" style="width: 27%">
                     <h4>Личные данные</h4>
                     <div class="col-xs-12">
@@ -93,13 +94,10 @@
                     </div>
                     <!-- <h4>Взаиморасчеты</h4> -->
                     <h4>Установленное оборудование</h4>
-                    <div class="col-xs-12">
-                        <span id="equipments" hidden>                            
-                            <h5 id="equipments">----</h5>
-                        </span>                        
+                    <div class="col-xs-12">                        
+                        <h5 id="equipments"></h5>                        
                     </div>
-                </div>
-                <!-- если счетчик то добавляем данные -->
+                </div>                
             </div>        
         </div>
     {% endif %}
@@ -156,27 +154,23 @@
             }
             else {
                 var                    
-                    $equipments     = $('#equipments'),                    
-                    _row            = $('#table_6').dataTable().fnGetData($(this));
+                    _row            = $('#table_6').dataTable().fnGetData($(this)),
                     _db             = location.pathname.substring(10, 13),
                     _period_start   = location.pathname.substring(14, 24);                    
                 
                 table_6.$('tr.info').removeClass('info');
                 $(this).addClass('info');
-                
-                $equipments.prop('hidden', true);                
-
+                $('#anim').css('display', 'block');
                 $.post("{{ url_for('main.get_data_abonent')}}", {data: _db, ls: this.firstElementChild.innerText, period_start: _period_start})
-                    .done(function(response){
-                        console.log(_row[7]);
+                    .done(function(response){                        
                         if (_row[7] != 'None') {
                             var1 = ('<br><br>'+_row[7]+' ('+_row[9]+' '+_row[8]+')<br>'+_row[10]+' '+_row[11])    
                         } else {
                             var1 = ''
                         }                        
-                        $('#passport').html((_row[3] == 'off' ? 'Дата закрытия: ' : 'Дата открытия: ')+_row[5]+'<br>'+(_row[4] == 'Отключен' ? 'Дата отключения: ' : 'Дата подключения: ')+_row[6]+'<br><br>'+_row[2]+var1);
-                        $equipments.prop('hidden', false);
-                        $('#equipments').html(response.Equipments);                                          
+                        $('#passport').html((_row[3] == 'off' ? 'Дата закрытия: ' : 'Дата открытия: ')+_row[5]+'<br>'+(_row[4] == 'Отключен' ? 'Дата отключения: ' : 'Дата подключения: ')+_row[6]+'<br><br>'+_row[2]+var1);                        
+                        $('#equipments').html(response.Equipments);
+                        $('#anim').css('display', 'none');
                     })
                     .fail(function(response){console.log(response)})
             }
@@ -184,7 +178,8 @@
         
         $('#input_search').on('keyup', function (e) {
             if (e.keyCode == 13) {
-                // нужна предварительная валидация введенного ЛС            
+                // анимация ожидания
+                $('#anim').css('display', 'block');
                 $.post("{{ url_for('main.get_data_abonent')}}", {search: 1, ls: $('#input_search').val()})
                     .done(function(response){
                         $('#personaldata').html(response.PersonalData);
@@ -192,24 +187,13 @@
                         $('#regimes').html(response.Regimes);
                         $('#accounts').html(response.Accounts);
                         $('#parameters').html(response.Parameters);
-                        $('#equipments').html(response.Equipments);                    
+                        $('#equipments').html(response.Equipments);
+                        $('#anim').css('display', 'none');
                     })
                     .fail(function(response){})
+                
+                
             }            
         });
-
-        // $('#search').click(function(){
-        //     // нужна предварительная валидация введенного ЛС            
-        //     $.post("{{ url_for('main.get_data_abonent')}}", {search: 1, ls: $('#input_search').val()})
-        //         .done(function(response){
-        //             $('#personaldata').html(response.PersonalData);
-        //             $('#status').html(response.Status);
-        //             $('#regimes').html(response.Regimes);
-        //             $('#accounts').html(response.Accounts);
-        //             $('#parameters').html(response.Parameters);
-        //             $('#equipments').html(response.Equipments);                    
-        //         })
-        //         .fail(function(response){})
-        // });
     </script>
 {% endblock %}
